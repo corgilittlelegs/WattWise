@@ -46,47 +46,47 @@ export const PWAUpdatePrompt: React.FC = () => {
   return (
     <div className="fixed bottom-4 left-4 right-4 sm:left-auto sm:right-4 sm:w-96 z-[100] pointer-events-none print:hidden">
       <div 
-        className={`pointer-events-auto w-full bg-white/80 dark:bg-slate-900/80 backdrop-blur-md rounded-2xl shadow-xl border border-slate-200/80 dark:border-slate-800/80 p-4 flex flex-col gap-3 ${
+        className={`pointer-events-auto w-full bg-white/95 dark:bg-[#121316]/95 backdrop-blur-md rounded-xl shadow-xl border border-neutral-200 dark:border-neutral-800 p-4 flex flex-col gap-3 ${
           isClosing ? 'animate-slide-down' : 'animate-slide-up'
         }`}
       >
         <div className="flex items-start justify-between gap-3">
           <div className="flex gap-3">
-            <div className="relative flex shrink-0 items-center justify-center bg-indigo-50 dark:bg-indigo-950/40 p-2.5 rounded-xl text-indigo-600 dark:text-indigo-400 border border-indigo-100/50 dark:border-indigo-900/50">
+            <div className="relative flex shrink-0 items-center justify-center bg-neutral-50 dark:bg-[#18181b] p-2.5 rounded-lg text-neutral-600 dark:text-neutral-300 border border-neutral-200 dark:border-neutral-800">
               <RefreshCw className="w-5 h-5 animate-spin [animation-duration:8s]" />
               <span className="absolute -top-1 -right-1 flex h-2.5 w-2.5">
-                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-indigo-400 opacity-75"></span>
-                <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-indigo-500"></span>
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-neutral-400 opacity-75"></span>
+                <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-neutral-500"></span>
               </span>
             </div>
             <div className="space-y-0.5">
-              <h4 className="text-xs sm:text-sm font-bold text-slate-800 dark:text-white flex items-center gap-1">
+              <h4 className="text-xs sm:text-sm font-extrabold text-neutral-900 dark:text-white flex items-center gap-1 font-display uppercase tracking-wide">
                 <span>Update Available</span>
                 <Sparkles className="w-3.5 h-3.5 text-amber-500 animate-pulse" />
               </h4>
-              <p className="text-[11px] sm:text-xs text-slate-500 dark:text-slate-400 font-medium leading-relaxed">
+              <p className="text-[11px] sm:text-xs text-neutral-500 dark:text-neutral-400 font-medium leading-relaxed font-sans">
                 A newer version of Wattwise is available with recent fixes and updates.
               </p>
             </div>
           </div>
           <button
             onClick={handleDismiss}
-            className="p-1 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors cursor-pointer shrink-0"
+            className="p-1.5 hover:bg-neutral-100 dark:hover:bg-neutral-800 rounded-lg text-neutral-400 hover:text-neutral-700 dark:hover:text-neutral-200 transition-colors cursor-pointer shrink-0"
           >
             <X className="w-4 h-4" />
           </button>
         </div>
 
-        <div className="flex items-center justify-end gap-2 pt-1 border-t border-slate-100/60 dark:border-slate-800/50">
+        <div className="flex items-center justify-end gap-2 pt-1 border-t border-neutral-150 dark:border-neutral-850">
           <button
             onClick={handleDismiss}
-            className="px-3.5 py-1.5 hover:bg-slate-50 dark:hover:bg-slate-850 rounded-lg text-[10px] sm:text-xs font-bold text-slate-500 dark:text-slate-300 transition-colors cursor-pointer"
+            className="px-3.5 py-1.5 hover:bg-neutral-50 dark:hover:bg-neutral-800 rounded-lg text-[9px] uppercase tracking-widest font-bold text-neutral-500 dark:text-neutral-350 transition-colors cursor-pointer border border-transparent hover:border-neutral-200 dark:hover:border-neutral-800 font-mono"
           >
             Later
           </button>
           <button
             onClick={handleUpdate}
-            className="px-3.5 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-[10px] sm:text-xs font-bold shadow-xs hover:scale-[1.02] active:scale-[0.98] transition-all cursor-pointer flex items-center gap-1.5"
+            className="px-3.5 py-1.5 bg-neutral-900 hover:bg-neutral-800 dark:bg-white dark:hover:bg-neutral-100 text-white dark:text-black rounded-lg text-[9px] uppercase tracking-widest font-bold shadow-xs transition-all cursor-pointer flex items-center gap-1.5 font-mono"
           >
             <RefreshCw className="w-3.5 h-3.5 shrink-0" />
             <span>Update Now</span>

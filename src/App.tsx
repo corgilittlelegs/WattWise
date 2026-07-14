@@ -12,18 +12,16 @@ import {
   INITIAL_METER_READINGS 
 } from "./types";
 import Header from "./components/Header";
-import BillConfig from "./components/BillConfig";
 import AddReadingForm from "./components/AddReadingForm";
-import CycleManager from "./components/CycleManager";
+import SettingsDrawer from "./components/SettingsDrawer";
 import InsightsDashboard from "./components/InsightsDashboard";
 import ReadingsList from "./components/ReadingsList";
-import { RotateCcw, SunMedium } from "lucide-react";
+import { SunMedium } from "lucide-react";
 import { subscribeToSyncSession, saveSyncSession, checkSyncSessionExists } from "./lib/firebase";
 import { ErrorBoundary } from "./components/ErrorBoundary";
 
 // Lazy-loaded components for code splitting & bundle optimization
 const SavingsChart = React.lazy(() => import("./components/SavingsChart"));
-const CloudSync = React.lazy(() => import("./components/CloudSync"));
 const WelcomeOnboardingModal = React.lazy(() =>
   import("./components/WelcomeOnboardingModal").then(module => ({ default: module.WelcomeOnboardingModal }))
 );
@@ -72,6 +70,9 @@ export default function App() {
   });
 
   const [selectedCycleId, setSelectedCycleId] = useState<string>("active");
+
+  // Settings Drawer Toggle State
+  const [isSettingsOpen, setIsSettingsOpen] = useState<boolean>(false);
 
   // Onboarding workflow state
   const [showOnboarding, setShowOnboarding] = useState<boolean>(() => {
@@ -351,19 +352,16 @@ export default function App() {
 
   return (
     <ErrorBoundary>
-      <div className={`min-h-screen text-slate-800 dark:text-slate-100 font-sans flex flex-col antialiased selection:bg-indigo-100 dark:selection:bg-indigo-900 selection:text-indigo-805 transition-colors duration-150 ${
-        isDark ? "dark bg-slate-950" : "bg-slate-50"
+      <div className={`min-h-screen text-neutral-800 dark:text-neutral-100 font-sans flex flex-col antialiased selection:bg-neutral-100 dark:selection:bg-neutral-800 selection:text-neutral-900 transition-colors duration-150 ${
+        isDark ? "dark bg-[#09090b]" : "bg-[#f9fafb]"
       }`}>
         {/* Visual top border */}
-        <div className="h-1.5 w-full bg-indigo-600 dark:bg-indigo-500 shrink-0" />
+        <div className="h-1 w-full bg-neutral-900 dark:bg-white shrink-0" />
         
-        {/* Header Viewport */}
         <Header 
           currentDateStr={systemDateStr} 
-          isDark={isDark} 
-          onToggleDark={() => setIsDark(!isDark)} 
-          deferredPrompt={deferredPrompt}
-          onInstallClick={handleInstallClick}
+          onOpenSettings={() => setIsSettingsOpen(true)}
+          isSyncActive={!!activeSyncKey}
         />
 
         {/* Main Body */}
@@ -371,105 +369,26 @@ export default function App() {
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
             
             {/* Controls column (Small left col on desktop, span 4) */}
-            <section className="lg:col-span-4 space-y-6 print:hidden">
+            <section className="lg:col-span-4 lg:sticky lg:top-24 self-start space-y-6 print:hidden">
               
-              {/* Cycle Manager */}
-              <CycleManager 
-                bill={bill}
-                readings={readings}
-                archivedCycles={archivedCycles}
-                selectedCycleId={selectedCycleId}
-                onSelectCycle={handleSelectCycle}
-                onArchiveCycle={handleArchiveCycle}
-                onDeleteArchive={handleDeleteArchive}
-              />
-
-              {/* Bill Anchor Config & Entry form (Only active cycle is editable) */}
-              {isViewingActive ? (
-                <>
-                  <BillConfig 
-                    bill={bill} 
-                    onChange={handleUpdateBill} 
-                  />
-
-                  <AddReadingForm 
-                    bill={bill} 
-                    readings={readings} 
-                    onAdd={handleAddReading} 
-                  />
-                </>
-              ) : (
-                <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-5 space-y-3">
-                  <h4 className="font-display font-bold text-slate-450 dark:text-slate-550 text-[10px] uppercase tracking-widest">
-                    Archived Configuration
-                  </h4>
-                  <div className="text-xs space-y-2 text-slate-600 dark:text-slate-400">
-                    <div className="flex justify-between border-b border-slate-100 dark:border-slate-800 pb-1.5">
-                      <span>Cycle Start Date:</span>
-                      <strong className="text-slate-800 dark:text-slate-200">{new Date(currentBill.lastBillDate).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' })}</strong>
-                    </div>
-                    <div className="flex justify-between border-b border-slate-100 dark:border-slate-800 pb-1.5">
-                      <span>Start Meter Index:</span>
-                      <strong className="text-slate-850 dark:text-slate-200 font-mono">{currentBill.lastBillReading.toLocaleString()} kWh</strong>
-                    </div>
-                    <div className="flex justify-between">
-                      <span>Recorded Logs:</span>
-                      <strong className="text-slate-850 dark:text-slate-200">{currentReadings.length} checkpoints</strong>
-                    </div>
-                  </div>
-                </div>
+              {/* Entry form (Only active cycle is editable) */}
+              {isViewingActive && (
+                <AddReadingForm 
+                  bill={bill} 
+                  readings={readings} 
+                  onAdd={handleAddReading} 
+                />
               )}
 
-              {/* Cloud Sync Settings */}
-              <Suspense fallback={<div className="p-6 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-xs text-slate-400">Loading sync setup...</div>}>
-                <CloudSync 
-                  bill={bill}
-                  readings={readings}
-                  archivedCycles={archivedCycles}
-                  activeSyncKey={activeSyncKey}
-                  onSyncStateLoaded={(loadedBill, loadedReadings, loadedArchived, syncKey) => {
-                    setBill(loadedBill);
-                    setReadings(loadedReadings);
-                    setArchivedCycles(loadedArchived);
-                    setActiveSyncKey(syncKey);
-                  }}
-                  onDisconnect={() => {
-                    setActiveSyncKey(null);
-                  }}
-                />
-              </Suspense>
-
-              {/* Micro-insights and management action block */}
-              <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-5 space-y-4">
-                <h4 className="font-display font-bold text-indigo-600 dark:text-indigo-400 text-[10px] uppercase tracking-widest flex items-center gap-1.5">
-                  <SunMedium className="w-4 h-4 text-indigo-600 dark:text-indigo-400" />
+              {/* Micro-insights (Quick Eco Tip remains here) */}
+              <div className="bg-white dark:bg-[#121316] border border-neutral-200 dark:border-neutral-800 p-5 rounded-xl space-y-4 shadow-xs">
+                <h4 className="font-display font-extrabold text-neutral-900 dark:text-white text-[10px] uppercase tracking-widest flex items-center gap-1.5 font-mono">
+                  <SunMedium className="w-4 h-4 text-neutral-500" />
                   Quick Eco Tip
                 </h4>
-                <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed font-sans">
+                <p className="text-xs text-neutral-500 dark:text-neutral-400 leading-relaxed font-sans">
                   Gov free 10 units cover lighting, basic fans, and normal computer usage. Operating thermal loads like high-power kettles (1.5 kW), water heaters, or microwave ovens for just 1 hour uses up to 2-3 times your total eco-tier average!
                 </p>
-                
-                <div className="pt-3 border-t border-slate-100 dark:border-slate-800 flex flex-wrap gap-3 justify-between">
-                  <button
-                    id="reset-demo-btn"
-                    onClick={handleResetData}
-                    className="flex items-center gap-1 text-[9px] font-bold uppercase tracking-widest text-slate-400 dark:text-slate-500 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors cursor-pointer"
-                    title="Reset to default mock values"
-                  >
-                    <RotateCcw className="w-3.5 h-3.5" />
-                    <span>Restore Demo</span>
-                  </button>
-                  
-                  {isViewingActive && readings.length > 0 && (
-                    <button
-                      id="clear-all-btn"
-                      onClick={handleClearEverything}
-                      className="flex items-center gap-1 text-[9px] font-bold uppercase tracking-widest text-rose-505 dark:text-rose-455 hover:text-rose-700 dark:hover:text-rose-405 transition-colors cursor-pointer"
-                    >
-                      <span>Clear Logs</span>
-                    </button>
-                  )}
-                </div>
               </div>
 
             </section>
@@ -484,7 +403,7 @@ export default function App() {
               />
 
               {/* Custom SVG trajectory chart */}
-              <Suspense fallback={<div className="h-[240px] flex items-center justify-center text-xs text-slate-400">Loading chart...</div>}>
+              <Suspense fallback={<div className="h-[240px] flex items-center justify-center text-xs text-neutral-400 font-mono">Loading chart...</div>}>
                 <SavingsChart 
                   bill={currentBill} 
                   readings={currentReadings} 
@@ -504,11 +423,11 @@ export default function App() {
         </main>
 
         {/* Subtle humble footer matching strict branding rules */}
-        <footer className="py-8 mt-12 border-t border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-center text-slate-400 dark:text-slate-500 select-none print:hidden">
-          <p className="text-xs font-medium uppercase tracking-wide">
+        <footer className="py-8 mt-12 border-t border-neutral-200 dark:border-neutral-800 bg-white dark:bg-[#0b0c0e] text-center text-neutral-450 dark:text-neutral-500 select-none print:hidden font-mono text-[9px] uppercase tracking-widest">
+          <p className="font-bold tracking-wider">
             Daily Free Credit quota based on state general energy supply tariffs (10 units/day).
           </p>
-          <p className="text-[10px] text-slate-400 dark:text-slate-500 mt-1.5 font-mono">
+          <p className="text-neutral-400 dark:text-neutral-600 mt-1.5">
             All calculations are client-side only &bull; Data saved locally.
           </p>
         </footer>
@@ -521,6 +440,33 @@ export default function App() {
             onLink={handleLinkOnboarding}
           />
         </Suspense>
+
+        <SettingsDrawer
+          isOpen={isSettingsOpen}
+          onClose={() => setIsSettingsOpen(false)}
+          isDark={isDark}
+          onToggleDark={() => setIsDark(!isDark)}
+          deferredPrompt={deferredPrompt}
+          onInstallClick={handleInstallClick}
+          bill={bill}
+          readings={readings}
+          archivedCycles={archivedCycles}
+          selectedCycleId={selectedCycleId}
+          onSelectCycle={handleSelectCycle}
+          onArchiveCycle={handleArchiveCycle}
+          onDeleteArchive={handleDeleteArchive}
+          activeSyncKey={activeSyncKey}
+          onSyncStateLoaded={(loadedBill, loadedReadings, loadedArchived, syncKey) => {
+            setBill(loadedBill);
+            setReadings(loadedReadings);
+            setArchivedCycles(loadedArchived);
+            setActiveSyncKey(syncKey);
+          }}
+          onDisconnect={() => setActiveSyncKey(null)}
+          onResetData={handleResetData}
+          onClearEverything={handleClearEverything}
+          onUpdateBill={handleUpdateBill}
+        />
 
         {/* PWA Service Worker Update Alert Component */}
         <Suspense fallback={null}>

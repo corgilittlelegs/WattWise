@@ -7,7 +7,7 @@ import firebaseConfig from "../../firebase-applet-config.json";
 const app = initializeApp(firebaseConfig);
 
 // Initialize Firestore targeting the specific databaseId provisioned for this applet
-export const db = initializeFirestore(app, {}, firebaseConfig.firestoreDatabaseId);
+export const db = initializeFirestore(app, {}, (firebaseConfig as { firestoreDatabaseId?: string }).firestoreDatabaseId);
 
 export interface SyncSessionData {
   bill: BillDetails;

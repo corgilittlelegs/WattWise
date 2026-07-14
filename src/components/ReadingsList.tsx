@@ -49,31 +49,33 @@ export default function ReadingsList({ bill, readings, onDelete }: ReadingsListP
   };
 
   return (
-    <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 overflow-hidden transition-colors duration-150">
-      <div className="p-5 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between">
+    <div className="bg-white dark:bg-[#121316] border border-neutral-200 dark:border-neutral-800 rounded-xl overflow-hidden transition-colors duration-150 shadow-xs">
+      
+      {/* List Header */}
+      <div className="p-5 border-b border-neutral-200 dark:border-neutral-800 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h3 className="font-display font-bold uppercase tracking-wider text-xs text-slate-900 dark:text-white flex items-center gap-2">
-            <Compass className="w-4 h-4 text-indigo-600 dark:text-indigo-400" />
+          <h3 className="font-display font-extrabold uppercase tracking-wider text-xs text-neutral-900 dark:text-white flex items-center gap-2">
+            <Compass className="w-4 h-4 text-neutral-500 dark:text-neutral-450" />
             Checkpoints Log History
           </h3>
-          <p className="text-[11px] text-slate-405 dark:text-slate-450 mt-0.5">
+          <p className="text-[10px] text-neutral-450 dark:text-neutral-500 mt-0.5 font-mono">
             Your recorded physical meter readings and calculated balances
           </p>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 shrink-0">
           {readings.length > 0 && (
             <>
               <button
                 onClick={() => window.print()}
-                className="flex items-center gap-1 px-3 py-1 bg-white hover:bg-slate-50 dark:bg-slate-900 dark:hover:bg-slate-850 text-slate-700 dark:text-slate-200 border border-slate-250 dark:border-slate-700 font-bold text-[10px] uppercase tracking-wider cursor-pointer print:hidden transition-colors"
+                className="flex items-center gap-1.5 px-3 py-1.5 bg-neutral-50 hover:bg-neutral-100 dark:bg-[#18181b] dark:hover:bg-neutral-800 text-neutral-600 dark:text-neutral-350 border border-neutral-200 dark:border-neutral-800 font-bold text-[9px] uppercase tracking-widest rounded-lg cursor-pointer print:hidden transition-colors font-mono"
                 title="Print Summary Report"
               >
-                <Printer className="w-3 h-3 text-indigo-650 dark:text-indigo-400" />
+                <Printer className="w-3 h-3 text-neutral-500 dark:text-neutral-400" />
                 <span>Print Report</span>
               </button>
               <button
                 onClick={downloadCSV}
-                className="flex items-center gap-1 px-3 py-1 bg-indigo-650 hover:bg-indigo-750 dark:bg-indigo-500 dark:hover:bg-indigo-600 text-white font-bold text-[10px] uppercase tracking-wider cursor-pointer print:hidden"
+                className="flex items-center gap-1.5 px-3 py-1.5 bg-neutral-900 hover:bg-neutral-800 dark:bg-white dark:hover:bg-neutral-100 text-white dark:text-black font-bold text-[9px] uppercase tracking-widest rounded-lg cursor-pointer print:hidden font-mono shadow-xs"
                 title="Download readings as CSV"
               >
                 <Download className="w-3 h-3" />
@@ -81,17 +83,17 @@ export default function ReadingsList({ bill, readings, onDelete }: ReadingsListP
               </button>
             </>
           )}
-          <span className="text-[10px] bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 font-bold uppercase tracking-wider px-3 py-1 text-slate-600 dark:text-slate-400 print:hidden">
-            {readings.length} Logged Entries
+          <span className="text-[9px] bg-neutral-50 dark:bg-[#18181b] border border-neutral-200 dark:border-neutral-800 font-bold uppercase tracking-widest px-3 py-1.5 text-neutral-500 dark:text-neutral-400 rounded-lg print:hidden font-mono">
+            {readings.length} logs
           </span>
         </div>
       </div>
 
       {readings.length === 0 ? (
-        <div className="p-10 text-center bg-white dark:bg-slate-900">
-          <FileText className="w-8 h-8 text-slate-300 dark:text-slate-700 mx-auto mb-2" />
-          <p className="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">No checkpoints recorded yet</p>
-          <p className="text-[10px] text-slate-430 dark:text-slate-500 mt-1">
+        <div className="p-10 text-center bg-white dark:bg-[#121316]">
+          <FileText className="w-8 h-8 text-neutral-300 dark:text-neutral-700 mx-auto mb-2" />
+          <p className="text-xs font-bold uppercase tracking-widest text-neutral-450 dark:text-neutral-500 font-mono">No checkpoints recorded yet</p>
+          <p className="text-[10px] text-neutral-400 dark:text-neutral-550 mt-1">
             Record a physical meter index above to build your timeline.
           </p>
         </div>
@@ -100,28 +102,28 @@ export default function ReadingsList({ bill, readings, onDelete }: ReadingsListP
           {/* Desktop/Tablet Table Layout */}
           <table className="w-full text-left border-collapse hidden sm:table">
             <thead>
-              <tr className="bg-slate-50 dark:bg-slate-950 border-b border-slate-200 dark:border-slate-800 text-[9px] uppercase font-bold text-slate-450 dark:text-slate-500 tracking-widest">
-                <th className="py-3 px-5">Date</th>
-                <th className="py-3 px-5">Meter Reading</th>
-                <th className="py-3 px-5">Elapsed</th>
-                <th className="py-3 px-5">Cumulative Consumed</th>
-                <th className="py-3 px-5">Saving Status</th>
-                {onDelete && <th className="py-3 px-5 text-right">Action</th>}
+              <tr className="bg-neutral-50 dark:bg-[#0c0c0e] border-b border-neutral-200 dark:border-neutral-850 text-[9px] uppercase font-bold text-neutral-450 dark:text-neutral-500 tracking-widest font-mono">
+                <th className="py-3.5 px-5">Date</th>
+                <th className="py-3.5 px-5">Meter Reading</th>
+                <th className="py-3.5 px-5">Elapsed</th>
+                <th className="py-3.5 px-5">Cumulative Consumed</th>
+                <th className="py-3.5 px-5">Saving Status</th>
+                {onDelete && <th className="py-3.5 px-5 text-right">Action</th>}
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-100 dark:divide-slate-800 text-xs bg-white dark:bg-slate-900">
+            <tbody className="divide-y divide-neutral-100 dark:divide-neutral-800/80 text-xs bg-white dark:bg-[#121316] font-mono">
               {sortedReadings.map((reading) => {
                 const stats = calculateStats(bill, reading.reading, reading.date);
                 const isSaving = stats.unitsSaved >= 0;
 
                 return (
-                  <tr key={reading.id} className="hover:bg-slate-50/50 dark:hover:bg-slate-950/40 border-b border-slate-100 dark:border-slate-850 last:border-b-0 transition-colors">
+                  <tr key={reading.id} className="hover:bg-neutral-50/50 dark:hover:bg-[#18181b]/30 border-b border-neutral-100 dark:border-neutral-850 last:border-b-0 transition-colors">
                     {/* Date */}
                     <td className="py-3.5 px-5">
-                      <div className="flex items-center gap-2">
-                        <Calendar className="w-3.5 h-3.5 text-slate-400 dark:text-slate-550" />
+                      <div className="flex items-center gap-2 font-sans">
+                        <Calendar className="w-3.5 h-3.5 text-neutral-400 dark:text-neutral-550" />
                         <div>
-                          <span className="font-semibold text-slate-800 dark:text-slate-200 block">
+                          <span className="font-bold text-neutral-800 dark:text-neutral-200 block">
                             {new Date(reading.date).toLocaleDateString(undefined, {
                               year: "numeric",
                               month: "short",
@@ -129,7 +131,7 @@ export default function ReadingsList({ bill, readings, onDelete }: ReadingsListP
                             })}
                           </span>
                           {reading.notes && (
-                            <span className="text-[10px] text-slate-400 dark:text-slate-500 block max-w-xs truncate italic">
+                            <span className="text-[10px] text-neutral-400 dark:text-neutral-500 block max-w-xs truncate italic mt-0.5">
                               &ldquo;{reading.notes}&rdquo;
                             </span>
                           )}
@@ -138,61 +140,53 @@ export default function ReadingsList({ bill, readings, onDelete }: ReadingsListP
                     </td>
 
                     {/* Meter Index */}
-                    <td className="py-3.5 px-5 font-mono">
-                      <span className="font-bold text-slate-700 dark:text-slate-300">
+                    <td className="py-3.5 px-5">
+                      <span className="font-bold text-neutral-700 dark:text-neutral-300">
                         {reading.reading.toLocaleString()}
                       </span>{" "}
-                      <span className="text-[10px] text-slate-400 dark:text-slate-500 font-sans">kWh</span>
+                      <span className="text-[10px] text-neutral-450 dark:text-neutral-500 font-sans">kWh</span>
                     </td>
 
                     {/* Days Elapsed */}
-                    <td className="py-3.5 px-5 font-medium text-slate-500 dark:text-slate-450 uppercase tracking-wide text-[10px]">
+                    <td className="py-3.5 px-5 font-bold text-neutral-500 dark:text-neutral-450 uppercase tracking-widest text-[9px]">
                       {stats.daysElapsed} days
                     </td>
 
                     {/* Consumed Units */}
                     <td className="py-3.5 px-5">
-                      <span className="font-semibold text-slate-800 dark:text-slate-150 font-mono">
+                      <span className="font-bold text-neutral-800 dark:text-neutral-150">
                         {stats.unitsConsumed.toFixed(0)}
                       </span>{" "}
-                      <span className="text-[10px] text-slate-400 dark:text-slate-505">kWh</span>
-                      <span className="text-[10px] text-slate-400 dark:text-slate-500 block mt-0.5">
-                        Avg: <strong className="font-mono text-slate-600 dark:text-slate-400">{stats.dailyAverage.toFixed(1)}</strong> kWh/d
+                      <span className="text-[10px] text-neutral-450 dark:text-neutral-550">kWh</span>
+                      <span className="text-[10px] text-neutral-400 dark:text-neutral-500 block mt-0.5 font-sans">
+                        Avg: <strong className="font-mono text-neutral-600 dark:text-neutral-400">{stats.dailyAverage.toFixed(1)}</strong> kWh/d
                       </span>
                     </td>
 
                     {/* Saving Target Check */}
                     <td className="py-3.5 px-5">
-                      <div className="flex items-center gap-1.5">
+                      <div className="flex items-center gap-2">
                         {isSaving ? (
-                          <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+                          <div className="px-2 py-0.5 rounded-sm text-[10px] font-bold uppercase tracking-wider text-emerald-700 dark:text-emerald-400 bg-emerald-100/50 dark:bg-emerald-950/20 border border-emerald-250/50 dark:border-emerald-900/30 flex items-center gap-1">
+                            <CheckCircle2 className="w-3 h-3 text-emerald-600" />
+                            <span>+{stats.unitsSaved.toFixed(1)} kWh</span>
+                          </div>
                         ) : (
-                          <AlertTriangle className="w-3.5 h-3.5 text-rose-500 shrink-0" />
+                          <div className="px-2 py-0.5 rounded-sm text-[10px] font-bold uppercase tracking-wider text-rose-700 dark:text-rose-400 bg-rose-100/50 dark:bg-rose-950/20 border border-rose-250/50 dark:border-rose-900/30 flex items-center gap-1">
+                            <AlertTriangle className="w-3 h-3 text-rose-500" />
+                            <span>{stats.unitsSaved.toFixed(1)} kWh</span>
+                          </div>
                         )}
-                        <div>
-                          <span 
-                            className={`font-bold font-mono ${
-                              isSaving ? "text-emerald-700 dark:text-emerald-400" : "text-rose-700 dark:text-rose-455"
-                            }`}
-                          >
-                            {isSaving ? "Saved " : "Exceeded "}
-                            {isSaving ? "+" : ""}
-                            {stats.unitsSaved.toFixed(1)} kWh
-                          </span>
-                          <span className="text-[10px] text-slate-400 dark:text-slate-500 block leading-none">
-                            Quota: {stats.freeAllowance.toFixed(0)} kWh
-                          </span>
-                        </div>
                       </div>
                     </td>
 
                     {/* Actions */}
                     {onDelete && (
-                      <td className="py-3.5 px-5 text-right font-sans">
+                      <td className="py-3.5 px-5 text-right">
                         <button
                           id={`delete-reading-${reading.id}`}
                           onClick={() => onDelete(reading.id)}
-                          className="p-1.5 text-slate-400 dark:text-slate-500 hover:text-rose-600 dark:hover:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/30 transition-all border border-transparent hover:border-rose-100 dark:hover:border-rose-950 inline-flex items-center justify-center cursor-pointer"
+                          className="p-1.5 text-neutral-450 dark:text-neutral-500 hover:text-rose-600 dark:hover:text-rose-455 hover:bg-rose-50/50 dark:hover:bg-rose-950/20 transition-all border border-transparent hover:border-rose-100 dark:hover:border-rose-900/30 rounded-lg inline-flex items-center justify-center cursor-pointer"
                           title="Delete reading entry"
                         >
                           <Trash2 className="w-4 h-4" />
@@ -206,17 +200,17 @@ export default function ReadingsList({ bill, readings, onDelete }: ReadingsListP
           </table>
 
           {/* Mobile Layout (Strictly responsive stacked card structure) */}
-          <div className="block sm:hidden divide-y divide-slate-150 dark:divide-slate-800">
+          <div className="block sm:hidden divide-y divide-neutral-150 dark:divide-neutral-800">
             {sortedReadings.map((reading) => {
               const stats = calculateStats(bill, reading.reading, reading.date);
               const isSaving = stats.unitsSaved >= 0;
 
               return (
-                <div key={reading.id} className="p-4 space-y-3 bg-white dark:bg-slate-900 hover:bg-slate-50/50 dark:hover:bg-slate-950/40 transition-colors">
-                  <div className="flex justify-between items-start">
+                <div key={reading.id} className="p-4 space-y-3 bg-white dark:bg-[#121316] hover:bg-neutral-50/50 dark:hover:bg-[#18181b]/30 transition-colors">
+                  <div className="flex justify-between items-start font-sans">
                     <div className="flex items-center gap-1.5">
-                      <Calendar className="w-3.5 h-3.5 text-slate-400 dark:text-slate-500" />
-                      <span className="font-semibold text-slate-800 dark:text-slate-200">
+                      <Calendar className="w-3.5 h-3.5 text-neutral-400 dark:text-neutral-500" />
+                      <span className="font-bold text-neutral-800 dark:text-neutral-200">
                         {new Date(reading.date).toLocaleDateString(undefined, {
                           month: "short",
                           day: "numeric",
@@ -229,34 +223,36 @@ export default function ReadingsList({ bill, readings, onDelete }: ReadingsListP
                       <button
                         id={`delete-reading-mob-${reading.id}`}
                         onClick={() => onDelete(reading.id)}
-                        className="p-1 text-slate-400 dark:text-slate-500 hover:text-rose-600 dark:hover:text-rose-450 border border-transparent hover:bg-rose-50 dark:hover:bg-rose-950/30 hover:border-rose-100 dark:hover:border-rose-950 inline-flex items-center justify-center cursor-pointer"
+                        className="p-1.5 text-neutral-450 dark:text-neutral-550 hover:text-rose-600 dark:hover:text-rose-450 border border-transparent hover:bg-rose-50/50 dark:hover:bg-rose-950/20 hover:border-rose-100 dark:hover:border-rose-900/30 rounded-lg inline-flex items-center justify-center cursor-pointer"
                       >
                         <Trash2 className="w-4 h-4" />
                       </button>
                     )}
                   </div>
 
-                  <div className="grid grid-cols-2 gap-2 text-xs">
-                    <div className="bg-slate-50 dark:bg-slate-950 p-2 border border-slate-200 dark:border-slate-800 transition-colors">
-                      <span className="text-[9px] text-slate-400 dark:text-slate-500 block uppercase font-bold">Meter Reading</span>
-                      <strong className="text-slate-700 dark:text-slate-300 font-mono text-xs">{reading.reading.toLocaleString()} kWh</strong>
+                  <div className="grid grid-cols-2 gap-2 text-xs font-mono">
+                    <div className="bg-neutral-50 dark:bg-[#18181b] p-2 border border-neutral-200 dark:border-neutral-800 transition-colors rounded-lg">
+                      <span className="text-[8px] text-neutral-450 dark:text-neutral-500 block uppercase font-bold tracking-wide">Reading</span>
+                      <strong className="text-neutral-700 dark:text-neutral-300 text-xs">{reading.reading.toLocaleString()} kWh</strong>
                     </div>
 
-                    <div className="bg-slate-50 dark:bg-slate-950 p-2 border border-slate-200 dark:border-slate-800 transition-colors">
-                      <span className="text-[9px] text-slate-400 dark:text-slate-500 block uppercase font-bold">Elapsed Days</span>
-                      <strong className="text-slate-700 dark:text-slate-300 text-xs">{stats.daysElapsed} days</strong>
+                    <div className="bg-neutral-50 dark:bg-[#18181b] p-2 border border-neutral-200 dark:border-neutral-800 transition-colors rounded-lg">
+                      <span className="text-[8px] text-neutral-450 dark:text-neutral-500 block uppercase font-bold tracking-wide">Days</span>
+                      <strong className="text-neutral-700 dark:text-neutral-300 text-xs">{stats.daysElapsed} days</strong>
                     </div>
 
-                    <div className="bg-slate-50 dark:bg-slate-950 p-2 border border-slate-200 dark:border-slate-800 transition-colors">
-                      <span className="text-[9px] text-slate-400 dark:text-slate-500 block uppercase font-bold">Consumed</span>
-                      <strong className="text-slate-700 dark:text-slate-300 font-mono text-xs">{stats.unitsConsumed.toFixed(0)} kWh</strong>
+                    <div className="bg-neutral-50 dark:bg-[#18181b] p-2 border border-neutral-200 dark:border-neutral-800 transition-colors rounded-lg">
+                      <span className="text-[8px] text-neutral-450 dark:text-neutral-500 block uppercase font-bold tracking-wide">Consumed</span>
+                      <strong className="text-neutral-700 dark:text-neutral-300 text-xs">{stats.unitsConsumed.toFixed(0)} kWh</strong>
                     </div>
 
-                    <div className={`p-2 border transition-colors ${
-                      isSaving ? "bg-emerald-50/50 dark:bg-emerald-950/20 border-emerald-250 dark:border-emerald-900/60" : "bg-rose-50/50 dark:bg-rose-950/20 border-rose-250 dark:border-rose-900/60"
+                    <div className={`p-2 border rounded-lg transition-colors ${
+                      isSaving 
+                        ? "bg-emerald-50/20 dark:bg-emerald-950/10 border-emerald-250 dark:border-emerald-900/40" 
+                        : "bg-rose-50/20 dark:bg-rose-950/10 border-rose-250 dark:border-rose-900/40"
                     }`}>
-                      <span className="text-[9px] text-slate-400 dark:text-slate-500 block uppercase font-bold">Saving balance</span>
-                      <strong className={`font-mono text-xs ${isSaving ? "text-emerald-700" : "text-rose-750"}`}>
+                      <span className="text-[8px] text-neutral-450 dark:text-neutral-500 block uppercase font-bold tracking-wide">Balance</span>
+                      <strong className={`text-xs ${isSaving ? "text-emerald-600 dark:text-emerald-400" : "text-rose-600 dark:text-rose-400"}`}>
                         {isSaving ? "+" : ""}
                         {stats.unitsSaved.toFixed(1)} kWh
                       </strong>
@@ -264,7 +260,7 @@ export default function ReadingsList({ bill, readings, onDelete }: ReadingsListP
                   </div>
 
                   {reading.notes && (
-                    <p className="text-[10px] text-slate-400 dark:text-slate-550 italic bg-slate-50 dark:bg-slate-950 p-2 border border-slate-200 dark:border-slate-805">
+                    <p className="text-[10px] text-neutral-450 dark:text-neutral-500 italic bg-neutral-50 dark:bg-[#18181b] p-2 border border-neutral-200 dark:border-neutral-800 rounded-lg">
                       &ldquo;{reading.notes}&rdquo;
                     </p>
                   )}
