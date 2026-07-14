@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, Suspense } from "react";
 import { 
   BillDetails, 
   MeterReading, 
@@ -14,13 +14,22 @@ import {
 import Header from "./components/Header";
 import BillConfig from "./components/BillConfig";
 import AddReadingForm from "./components/AddReadingForm";
-import CloudSync from "./components/CloudSync";
 import CycleManager from "./components/CycleManager";
 import InsightsDashboard from "./components/InsightsDashboard";
-import SavingsChart from "./components/SavingsChart";
 import ReadingsList from "./components/ReadingsList";
-import { RotateCcw, AlertCircle, FileSpreadsheet, SunMedium } from "lucide-react";
-import { subscribeToSyncSession, saveSyncSession } from "./lib/firebase";
+import { RotateCcw, SunMedium } from "lucide-react";
+import { subscribeToSyncSession, saveSyncSession, checkSyncSessionExists } from "./lib/firebase";
+import { ErrorBoundary } from "./components/ErrorBoundary";
+
+// Lazy-loaded components for code splitting & bundle optimization
+const SavingsChart = React.lazy(() => import("./components/SavingsChart"));
+const CloudSync = React.lazy(() => import("./components/CloudSync"));
+const WelcomeOnboardingModal = React.lazy(() =>
+  import("./components/WelcomeOnboardingModal").then(module => ({ default: module.WelcomeOnboardingModal }))
+);
+const PWAUpdatePrompt = React.lazy(() =>
+  import("./components/PWAUpdatePrompt").then(module => ({ default: module.PWAUpdatePrompt }))
+);
 
 export default function App() {
   // Load dark mode preference
@@ -63,6 +72,53 @@ export default function App() {
   });
 
   const [selectedCycleId, setSelectedCycleId] = useState<string>("active");
+
+  // Onboarding workflow state
+  const [showOnboarding, setShowOnboarding] = useState<boolean>(() => {
+    try {
+      const hasAnchor = !!localStorage.getItem("electricity_bill_anchor");
+      const hasSyncKey = !!localStorage.getItem("wattwise_sync_key");
+      return !hasAnchor && !hasSyncKey;
+    } catch {
+      return true;
+    }
+  });
+
+  // PWA Install Prompt Hooks
+  const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
+  const [isInstalled, setIsInstalled] = useState<boolean>(false);
+
+  useEffect(() => {
+    const handleBeforeInstallPrompt = (e: Event) => {
+      e.preventDefault();
+      setDeferredPrompt(e);
+    };
+
+    const handleAppInstalled = () => {
+      setDeferredPrompt(null);
+      setIsInstalled(true);
+    };
+
+    window.addEventListener("beforeinstallprompt", handleBeforeInstallPrompt);
+    window.addEventListener("appinstalled", handleAppInstalled);
+
+    if (window.matchMedia("(display-mode: standalone)").matches) {
+      setIsInstalled(true);
+    }
+
+    return () => {
+      window.removeEventListener("beforeinstallprompt", handleBeforeInstallPrompt);
+      window.removeEventListener("appinstalled", handleAppInstalled);
+    };
+  }, []);
+
+  const handleInstallClick = async () => {
+    if (!deferredPrompt) return;
+    deferredPrompt.prompt();
+    const { outcome } = await deferredPrompt.userChoice;
+    console.log(`User response to PWA install prompt: ${outcome}`);
+    setDeferredPrompt(null);
+  };
 
   // Theme observer
   useEffect(() => {
@@ -107,6 +163,7 @@ export default function App() {
     } catch {}
 
     const unsubscribe = subscribeToSyncSession(activeSyncKey, (data) => {
+      if (!data) return;
       const billStr = JSON.stringify(data.bill);
       const readingsStr = JSON.stringify(data.readings);
       const archivedStr = JSON.stringify(data.archivedCycles || []);
@@ -245,6 +302,44 @@ export default function App() {
     }
   };
 
+  // Onboarding actions
+  const handleCompleteOnboarding = (startDate: string, startReading: number) => {
+    const initialBill = {
+      lastBillDate: startDate,
+      lastBillReading: startReading
+    };
+    setBill(initialBill);
+    setReadings([]);
+    setArchivedCycles([]);
+    setShowOnboarding(false);
+
+    try {
+      localStorage.setItem("electricity_bill_anchor", JSON.stringify(initialBill));
+      localStorage.setItem("electricity_meter_readings", JSON.stringify([]));
+      localStorage.setItem("electricity_archived_cycles", JSON.stringify([]));
+    } catch (e) {
+      console.error("Local storage onboarding error:", e);
+    }
+  };
+
+  const handleLinkOnboarding = async (linkedSyncKey: string): Promise<{ success: boolean; error?: string }> => {
+    if (linkedSyncKey === activeSyncKey) {
+      return { success: false, error: "Already connected to this Sync Key!" };
+    }
+    try {
+      const exists = await checkSyncSessionExists(linkedSyncKey);
+      if (exists) {
+        setActiveSyncKey(linkedSyncKey);
+        setShowOnboarding(false);
+        return { success: true };
+      } else {
+        return { success: false, error: "Sync Key not found. Please double-check." };
+      }
+    } catch (err) {
+      return { success: false, error: "Failed to verify Sync Key. Please try again." };
+    }
+  };
+
   // Determine which bill details and readings to display based on active selection
   const isViewingActive = selectedCycleId === "active";
   const selectedArchivedCycle = !isViewingActive 
@@ -255,157 +350,183 @@ export default function App() {
   const currentReadings = selectedArchivedCycle ? selectedArchivedCycle.readings : readings;
 
   return (
-    <div className={`min-h-screen text-slate-800 dark:text-slate-100 font-sans flex flex-col antialiased selection:bg-indigo-100 dark:selection:bg-indigo-900 selection:text-indigo-805 transition-colors duration-150 ${
-      isDark ? "dark bg-slate-950" : "bg-slate-50"
-    }`}>
-      {/* Visual top border */}
-      <div className="h-1.5 w-full bg-indigo-600 dark:bg-indigo-500 shrink-0" />
-      
-      {/* Header Viewport */}
-      <Header currentDateStr={systemDateStr} isDark={isDark} onToggleDark={() => setIsDark(!isDark)} />
+    <ErrorBoundary>
+      <div className={`min-h-screen text-slate-800 dark:text-slate-100 font-sans flex flex-col antialiased selection:bg-indigo-100 dark:selection:bg-indigo-900 selection:text-indigo-805 transition-colors duration-150 ${
+        isDark ? "dark bg-slate-950" : "bg-slate-50"
+      }`}>
+        {/* Visual top border */}
+        <div className="h-1.5 w-full bg-indigo-600 dark:bg-indigo-500 shrink-0" />
+        
+        {/* Header Viewport */}
+        <Header 
+          currentDateStr={systemDateStr} 
+          isDark={isDark} 
+          onToggleDark={() => setIsDark(!isDark)} 
+          deferredPrompt={deferredPrompt}
+          onInstallClick={handleInstallClick}
+        />
 
-      {/* Main Body */}
-      <main className="flex-1 max-w-6xl w-full mx-auto px-4 sm:px-6 py-6 sm:py-8">
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
-          
-          {/* Controls column (Small left col on desktop, span 4) */}
-          <section className="lg:col-span-4 space-y-6">
+        {/* Main Body */}
+        <main className="flex-1 max-w-6xl w-full mx-auto px-4 sm:px-6 py-6 sm:py-8">
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
             
-            {/* Cycle Manager */}
-            <CycleManager 
-              bill={bill}
-              readings={readings}
-              archivedCycles={archivedCycles}
-              selectedCycleId={selectedCycleId}
-              onSelectCycle={handleSelectCycle}
-              onArchiveCycle={handleArchiveCycle}
-              onDeleteArchive={handleDeleteArchive}
-            />
+            {/* Controls column (Small left col on desktop, span 4) */}
+            <section className="lg:col-span-4 space-y-6 print:hidden">
+              
+              {/* Cycle Manager */}
+              <CycleManager 
+                bill={bill}
+                readings={readings}
+                archivedCycles={archivedCycles}
+                selectedCycleId={selectedCycleId}
+                onSelectCycle={handleSelectCycle}
+                onArchiveCycle={handleArchiveCycle}
+                onDeleteArchive={handleDeleteArchive}
+              />
 
-            {/* Bill Anchor Config & Entry form (Only active cycle is editable) */}
-            {isViewingActive ? (
-              <>
-                <BillConfig 
-                  bill={bill} 
-                  onChange={handleUpdateBill} 
-                />
+              {/* Bill Anchor Config & Entry form (Only active cycle is editable) */}
+              {isViewingActive ? (
+                <>
+                  <BillConfig 
+                    bill={bill} 
+                    onChange={handleUpdateBill} 
+                  />
 
-                <AddReadingForm 
-                  bill={bill} 
-                  readings={readings} 
-                  onAdd={handleAddReading} 
-                />
-              </>
-            ) : (
-              <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-5 space-y-3">
-                <h4 className="font-display font-bold text-slate-450 dark:text-slate-550 text-[10px] uppercase tracking-widest">
-                  Archived Configuration
-                </h4>
-                <div className="text-xs space-y-2 text-slate-600 dark:text-slate-400">
-                  <div className="flex justify-between border-b border-slate-100 dark:border-slate-800 pb-1.5">
-                    <span>Cycle Start Date:</span>
-                    <strong className="text-slate-800 dark:text-slate-200">{new Date(currentBill.lastBillDate).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' })}</strong>
-                  </div>
-                  <div className="flex justify-between border-b border-slate-100 dark:border-slate-800 pb-1.5">
-                    <span>Start Meter Index:</span>
-                    <strong className="text-slate-850 dark:text-slate-200 font-mono">{currentBill.lastBillReading.toLocaleString()} kWh</strong>
-                  </div>
-                  <div className="flex justify-between">
-                    <span>Recorded Logs:</span>
-                    <strong className="text-slate-850 dark:text-slate-200">{currentReadings.length} checkpoints</strong>
+                  <AddReadingForm 
+                    bill={bill} 
+                    readings={readings} 
+                    onAdd={handleAddReading} 
+                  />
+                </>
+              ) : (
+                <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-5 space-y-3">
+                  <h4 className="font-display font-bold text-slate-450 dark:text-slate-550 text-[10px] uppercase tracking-widest">
+                    Archived Configuration
+                  </h4>
+                  <div className="text-xs space-y-2 text-slate-600 dark:text-slate-400">
+                    <div className="flex justify-between border-b border-slate-100 dark:border-slate-800 pb-1.5">
+                      <span>Cycle Start Date:</span>
+                      <strong className="text-slate-800 dark:text-slate-200">{new Date(currentBill.lastBillDate).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' })}</strong>
+                    </div>
+                    <div className="flex justify-between border-b border-slate-100 dark:border-slate-800 pb-1.5">
+                      <span>Start Meter Index:</span>
+                      <strong className="text-slate-850 dark:text-slate-200 font-mono">{currentBill.lastBillReading.toLocaleString()} kWh</strong>
+                    </div>
+                    <div className="flex justify-between">
+                      <span>Recorded Logs:</span>
+                      <strong className="text-slate-850 dark:text-slate-200">{currentReadings.length} checkpoints</strong>
+                    </div>
                   </div>
                 </div>
-              </div>
-            )}
+              )}
 
-            {/* Cloud Sync Settings */}
-            <CloudSync 
-              bill={bill}
-              readings={readings}
-              archivedCycles={archivedCycles}
-              activeSyncKey={activeSyncKey}
-              onSyncStateLoaded={(loadedBill, loadedReadings, loadedArchived, syncKey) => {
-                setBill(loadedBill);
-                setReadings(loadedReadings);
-                setArchivedCycles(loadedArchived);
-                setActiveSyncKey(syncKey);
-              }}
-              onDisconnect={() => {
-                setActiveSyncKey(null);
-              }}
-            />
+              {/* Cloud Sync Settings */}
+              <Suspense fallback={<div className="p-6 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-xs text-slate-400">Loading sync setup...</div>}>
+                <CloudSync 
+                  bill={bill}
+                  readings={readings}
+                  archivedCycles={archivedCycles}
+                  activeSyncKey={activeSyncKey}
+                  onSyncStateLoaded={(loadedBill, loadedReadings, loadedArchived, syncKey) => {
+                    setBill(loadedBill);
+                    setReadings(loadedReadings);
+                    setArchivedCycles(loadedArchived);
+                    setActiveSyncKey(syncKey);
+                  }}
+                  onDisconnect={() => {
+                    setActiveSyncKey(null);
+                  }}
+                />
+              </Suspense>
 
-            {/* Micro-insights and management action block */}
-            <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-5 space-y-4">
-              <h4 className="font-display font-bold text-indigo-600 dark:text-indigo-400 text-[10px] uppercase tracking-widest flex items-center gap-1.5">
-                <SunMedium className="w-4 h-4 text-indigo-600 dark:text-indigo-400" />
-                Quick Eco Tip
-              </h4>
-              <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed font-sans">
-                Gov free 10 units cover lighting, basic fans, and normal computer usage. Operating thermal loads like high-power kettles (1.5 kW), water heaters, or microwave ovens for just 1 hour uses up to 2-3 times your total eco-tier average!
-              </p>
-              
-              <div className="pt-3 border-t border-slate-100 dark:border-slate-800 flex flex-wrap gap-3 justify-between">
-                <button
-                  id="reset-demo-btn"
-                  onClick={handleResetData}
-                  className="flex items-center gap-1 text-[9px] font-bold uppercase tracking-widest text-slate-400 dark:text-slate-500 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors cursor-pointer"
-                  title="Reset to default mock values"
-                >
-                  <RotateCcw className="w-3.5 h-3.5" />
-                  <span>Restore Demo</span>
-                </button>
+              {/* Micro-insights and management action block */}
+              <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-5 space-y-4">
+                <h4 className="font-display font-bold text-indigo-600 dark:text-indigo-400 text-[10px] uppercase tracking-widest flex items-center gap-1.5">
+                  <SunMedium className="w-4 h-4 text-indigo-600 dark:text-indigo-400" />
+                  Quick Eco Tip
+                </h4>
+                <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed font-sans">
+                  Gov free 10 units cover lighting, basic fans, and normal computer usage. Operating thermal loads like high-power kettles (1.5 kW), water heaters, or microwave ovens for just 1 hour uses up to 2-3 times your total eco-tier average!
+                </p>
                 
-                {isViewingActive && readings.length > 0 && (
+                <div className="pt-3 border-t border-slate-100 dark:border-slate-800 flex flex-wrap gap-3 justify-between">
                   <button
-                    id="clear-all-btn"
-                    onClick={handleClearEverything}
-                    className="flex items-center gap-1 text-[9px] font-bold uppercase tracking-widest text-rose-505 dark:text-rose-450 hover:text-rose-700 dark:hover:text-rose-400 transition-colors cursor-pointer"
+                    id="reset-demo-btn"
+                    onClick={handleResetData}
+                    className="flex items-center gap-1 text-[9px] font-bold uppercase tracking-widest text-slate-400 dark:text-slate-500 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors cursor-pointer"
+                    title="Reset to default mock values"
                   >
-                    <span>Clear Logs</span>
+                    <RotateCcw className="w-3.5 h-3.5" />
+                    <span>Restore Demo</span>
                   </button>
-                )}
+                  
+                  {isViewingActive && readings.length > 0 && (
+                    <button
+                      id="clear-all-btn"
+                      onClick={handleClearEverything}
+                      className="flex items-center gap-1 text-[9px] font-bold uppercase tracking-widest text-rose-505 dark:text-rose-455 hover:text-rose-700 dark:hover:text-rose-405 transition-colors cursor-pointer"
+                    >
+                      <span>Clear Logs</span>
+                    </button>
+                  )}
+                </div>
               </div>
-            </div>
 
-          </section>
+            </section>
 
-          {/* Visualization & logs column (Large right col, span 8) */}
-          <section className="lg:col-span-8 space-y-6">
-            
-            {/* Top Stats Dashboard Summary */}
-            <InsightsDashboard 
-              bill={currentBill} 
-              readings={currentReadings} 
-            />
+            {/* Visualization & logs column (Large right col, span 8) */}
+            <section className="lg:col-span-8 space-y-6">
+              
+              {/* Top Stats Dashboard Summary */}
+              <InsightsDashboard 
+                bill={currentBill} 
+                readings={currentReadings} 
+              />
 
-            {/* Custom SVG trajectory chart */}
-            <SavingsChart 
-              bill={currentBill} 
-              readings={currentReadings} 
-              isDark={isDark}
-            />
+              {/* Custom SVG trajectory chart */}
+              <Suspense fallback={<div className="h-[240px] flex items-center justify-center text-xs text-slate-400">Loading chart...</div>}>
+                <SavingsChart 
+                  bill={currentBill} 
+                  readings={currentReadings} 
+                  isDark={isDark}
+                />
+              </Suspense>
 
-            {/* Physical Entries Log List */}
-            <ReadingsList 
-              bill={currentBill} 
-              readings={currentReadings} 
-              onDelete={isViewingActive ? handleDeleteReading : undefined} 
-            />
+              {/* Physical Entries Log List */}
+              <ReadingsList 
+                bill={currentBill} 
+                readings={currentReadings} 
+                onDelete={isViewingActive ? handleDeleteReading : undefined} 
+              />
 
-          </section>
-        </div>
-      </main>
+            </section>
+          </div>
+        </main>
 
-      {/* Subtle humble footer matching strict branding rules */}
-      <footer className="py-8 mt-12 border-t border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-center text-slate-400 dark:text-slate-500 select-none">
-        <p className="text-xs font-medium uppercase tracking-wide">
-          Daily Free Credit quota based on state general energy supply tariffs (10 units/day).
-        </p>
-        <p className="text-[10px] text-slate-400 dark:text-slate-500 mt-1.5 font-mono">
-          All calculations are client-side only &bull; Data saved locally.
-        </p>
-      </footer>
-    </div>
+        {/* Subtle humble footer matching strict branding rules */}
+        <footer className="py-8 mt-12 border-t border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-center text-slate-400 dark:text-slate-500 select-none print:hidden">
+          <p className="text-xs font-medium uppercase tracking-wide">
+            Daily Free Credit quota based on state general energy supply tariffs (10 units/day).
+          </p>
+          <p className="text-[10px] text-slate-400 dark:text-slate-500 mt-1.5 font-mono">
+            All calculations are client-side only &bull; Data saved locally.
+          </p>
+        </footer>
+
+        {/* Welcome Onboarding Modal Overlay */}
+        <Suspense fallback={null}>
+          <WelcomeOnboardingModal 
+            isOpen={showOnboarding}
+            onComplete={handleCompleteOnboarding}
+            onLink={handleLinkOnboarding}
+          />
+        </Suspense>
+
+        {/* PWA Service Worker Update Alert Component */}
+        <Suspense fallback={null}>
+          <PWAUpdatePrompt />
+        </Suspense>
+      </div>
+    </ErrorBoundary>
   );
 }

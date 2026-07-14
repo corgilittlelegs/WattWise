@@ -1,11 +1,9 @@
 {
-  "projectId": "resonant-operator-qrwfn",
-  "appId": "1:443521680899:web:95bd7a6a4145e5b3193036",
-  "apiKey": "AIzaSyBa9uDNGZuq9jxAiNEVQi2wSThHLx2YPqo",
-  "authDomain": "resonant-operator-qrwfn.firebaseapp.com",
-  "firestoreDatabaseId": "ai-studio-electricityconsu-578edadb-c55f-437c-885a-f7b06a5b44d5",
-  "storageBucket": "resonant-operator-qrwfn.firebasestorage.app",
-  "messagingSenderId": "443521680899",
-  "measurementId": "",
-  "oAuthClientId": "443521680899-bjg5ju6vlc1s88ti85s5oduj3v0j930s.apps.googleusercontent.com"
+  "projectId": "wattwise-c2563",
+  "appId": "1:590276154195:web:22c222f3c556c91b3c47a6",
+  "apiKey": "AIzaSyBZ9sJEyL0Rv11lAQAZi6URGt5kdc8MPr4",
+  "authDomain": "wattwise-c2563.firebaseapp.com",
+  "storageBucket": "wattwise-c2563.firebasestorage.app",
+  "messagingSenderId": "590276154195",
+  "measurementId": "G-J7JF89M9Q6"
 }

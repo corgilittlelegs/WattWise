@@ -47,7 +47,7 @@ export default function InsightsDashboard({ bill, readings }: InsightsDashboardP
         <div className="absolute top-0 right-0 p-6 text-right hidden sm:block select-none pointer-events-none">
           <div className="text-[10px] uppercase font-bold text-slate-400 dark:text-slate-500 tracking-widest mb-1">Efficiency Rating</div>
           <div className={`text-4xl font-bold uppercase tracking-tight ${
-            !hasReadings ? "text-slate-350 dark:text-slate-650" : stats.unitsSaved >= 0 ? "text-emerald-600 dark:text-emerald-400" : "text-amber-600 dark:text-amber-500"
+            !hasReadings ? "text-slate-350 dark:text-slate-655" : stats.unitsSaved >= 0 ? "text-emerald-600 dark:text-emerald-400" : "text-amber-600 dark:text-amber-505"
           }`}>
             {!hasReadings ? "PENDING" : stats.unitsSaved >= 15 ? "EXCELLENT" : stats.unitsSaved >= 0 ? "GOOD" : "OVER QUOTA"}
           </div>
@@ -66,7 +66,7 @@ export default function InsightsDashboard({ bill, readings }: InsightsDashboardP
                   Quota Achieved (Saving)
                 </span>
               ) : (
-                <span className="inline-flex items-center gap-1 px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-widest bg-amber-100 dark:bg-amber-950/60 text-amber-800 dark:text-amber-305">
+                <span className="inline-flex items-center gap-1 px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-widest bg-amber-105 dark:bg-amber-950/60 text-amber-800 dark:text-amber-305">
                   <AlertTriangle className="w-3.5 h-3.5" />
                   Over limit
                 </span>

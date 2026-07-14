@@ -1,5 +1,5 @@
 import { BillDetails, MeterReading, calculateStats } from "../types";
-import { Trash2, Calendar, Compass, FileText, CheckCircle2, AlertTriangle, ArrowUpRight } from "lucide-react";
+import { Trash2, Calendar, Compass, FileText, CheckCircle2, AlertTriangle, Download, Printer } from "lucide-react";
 
 interface ReadingsListProps {
   bill: BillDetails;
@@ -13,6 +13,41 @@ export default function ReadingsList({ bill, readings, onDelete }: ReadingsListP
     (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
   );
 
+  const downloadCSV = () => {
+    const rows = [
+      ["Date", "Meter Reading (kWh)", "Days Elapsed", "Units Consumed (kWh)", "Allowance Quota (kWh)", "Net Savings (kWh)", "Notes"]
+    ];
+
+    // Sorted chronological order (oldest first)
+    const exportReadings = [...readings].sort(
+      (a, b) => new Date(a.date).getTime() - new Date(b.date).getTime()
+    );
+
+    exportReadings.forEach((reading) => {
+      const stats = calculateStats(bill, reading.reading, reading.date);
+      rows.push([
+        reading.date,
+        reading.reading.toString(),
+        stats.daysElapsed.toString(),
+        stats.unitsConsumed.toString(),
+        stats.freeAllowance.toString(),
+        stats.unitsSaved.toString(),
+        reading.notes || ""
+      ]);
+    });
+
+    const csvContent = rows.map(row => row.map(val => `"${val.replace(/"/g, '""')}"`).join(",")).join("\n");
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.setAttribute("href", url);
+    link.setAttribute("download", `Wattwise_Readings_Export_${new Date().toISOString().split('T')[0]}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  };
+
   return (
     <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 overflow-hidden transition-colors duration-150">
       <div className="p-5 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between">
@@ -25,9 +60,31 @@ export default function ReadingsList({ bill, readings, onDelete }: ReadingsListP
             Your recorded physical meter readings and calculated balances
           </p>
         </div>
-        <span className="text-[10px] bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 font-bold uppercase tracking-wider px-3 py-1 text-slate-600 dark:text-slate-400">
-          {readings.length} Logged Entries
-        </span>
+        <div className="flex items-center gap-2">
+          {readings.length > 0 && (
+            <>
+              <button
+                onClick={() => window.print()}
+                className="flex items-center gap-1 px-3 py-1 bg-white hover:bg-slate-50 dark:bg-slate-900 dark:hover:bg-slate-850 text-slate-700 dark:text-slate-200 border border-slate-250 dark:border-slate-700 font-bold text-[10px] uppercase tracking-wider cursor-pointer print:hidden transition-colors"
+                title="Print Summary Report"
+              >
+                <Printer className="w-3 h-3 text-indigo-650 dark:text-indigo-400" />
+                <span>Print Report</span>
+              </button>
+              <button
+                onClick={downloadCSV}
+                className="flex items-center gap-1 px-3 py-1 bg-indigo-650 hover:bg-indigo-750 dark:bg-indigo-500 dark:hover:bg-indigo-600 text-white font-bold text-[10px] uppercase tracking-wider cursor-pointer print:hidden"
+                title="Download readings as CSV"
+              >
+                <Download className="w-3 h-3" />
+                <span>Export CSV</span>
+              </button>
+            </>
+          )}
+          <span className="text-[10px] bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 font-bold uppercase tracking-wider px-3 py-1 text-slate-600 dark:text-slate-400 print:hidden">
+            {readings.length} Logged Entries
+          </span>
+        </div>
       </div>
 
       {readings.length === 0 ? (

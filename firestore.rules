@@ -1,8 +1,22 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    match /sync_sessions/{sessionId} {
-      allow read, write: if true;
+    match /sync_sessions/{syncKey} {
+      // Fetching a session requires knowing its exact sync key.
+      allow get: if true;
+      // Never allow enumerating the collection.
+      allow list: if false;
+      // Writes must match the session schema; no extra fields.
+      allow create, update: if
+        request.resource.data.keys().hasOnly(
+          ['bill', 'readings', 'archivedCycles', 'updatedAt'])
+        && request.resource.data.bill is map
+        && request.resource.data.readings is list
+        && (!('archivedCycles' in request.resource.data)
+            || request.resource.data.archivedCycles is list)
+        && (!('updatedAt' in request.resource.data)
+            || request.resource.data.updatedAt is number);
+      allow delete: if false;
     }
   }
 }
