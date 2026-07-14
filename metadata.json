@@ -1,0 +1,6 @@
+{
+  "name": "Electricity Consumption Tracker",
+  "description": "Track electricity meter readings, calculate daily usage patterns, and see how much free government energy units you saved.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
