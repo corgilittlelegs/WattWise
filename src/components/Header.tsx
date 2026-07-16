@@ -35,9 +35,11 @@ export default function Header({
         
         {/* Brand Section */}
         <div className="flex items-center gap-3">
-          <div className="w-8 h-8 rounded-lg bg-neutral-900 dark:bg-white text-white dark:text-black flex items-center justify-center transition-colors">
-            <Zap className="w-4.5 h-4.5 fill-current" />
-          </div>
+          <img 
+            src="pwa-192x192.png" 
+            className="w-8 h-8 rounded-lg object-cover border border-neutral-200 dark:border-neutral-800" 
+            alt="WattWise Logo" 
+          />
           <div>
             <div className="flex items-center gap-2">
               <span className="font-display font-bold text-[10px] text-neutral-400 dark:text-neutral-500 tracking-wider uppercase block">
@@ -90,16 +92,10 @@ export default function Header({
           <button
             id="settings-toggle-btn"
             onClick={onOpenSettings}
-            className="relative h-8 w-8 flex items-center justify-center text-neutral-600 dark:text-neutral-400 hover:text-neutral-900 dark:hover:text-white bg-neutral-50 dark:bg-[#121316] border border-neutral-200 dark:border-neutral-850 rounded-lg transition-all cursor-pointer"
+            className="h-8 w-8 flex items-center justify-center text-neutral-600 dark:text-neutral-400 hover:text-neutral-900 dark:hover:text-white bg-neutral-50 dark:bg-[#121316] border border-neutral-200 dark:border-neutral-850 rounded-lg transition-all cursor-pointer"
             title="Open Application Settings"
           >
             <Settings className="w-4.5 h-4.5" />
-            {isSyncActive && (
-              <span className="absolute top-1.5 right-1.5 flex h-2 w-2">
-                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-450 opacity-75"></span>
-                <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
-              </span>
-            )}
           </button>
         </div>
       </div>
@@ -128,7 +124,7 @@ export default function Header({
                   <span className="w-6 h-6 rounded-md bg-neutral-900 dark:bg-white text-white dark:text-black flex items-center justify-center text-xs font-mono font-bold">02</span>
                   Log meter read
                 </span>
-                <p className="text-neutral-500 dark:text-slate-400 leading-relaxed font-sans">
+                <p className="text-neutral-500 dark:text-neutral-400 leading-relaxed font-sans">
                   Whenever you check your meter, log the date and current kWh reading. The difference yields your total units consumed.
                 </p>
               </div>
