@@ -16,7 +16,7 @@ import AddReadingForm from "./components/AddReadingForm";
 import SettingsDrawer from "./components/SettingsDrawer";
 import InsightsDashboard from "./components/InsightsDashboard";
 import ReadingsList from "./components/ReadingsList";
-import { SunMedium } from "lucide-react";
+import { SunMedium, LayoutDashboard, History } from "lucide-react";
 import {
   subscribeToSyncSession,
   saveSyncSession,
@@ -76,6 +76,7 @@ export default function App() {
   });
 
   const [selectedCycleId, setSelectedCycleId] = useState<string>("active");
+  const [activeTab, setActiveTab] = useState<"dashboard" | "ledger">("dashboard");
 
   // Settings Drawer Toggle State
   const [isSettingsOpen, setIsSettingsOpen] = useState<boolean>(false);
@@ -428,60 +429,108 @@ export default function App() {
 
         {/* Main Body */}
         <main className="flex-1 max-w-6xl w-full mx-auto px-4 sm:px-6 py-6 sm:py-8">
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
-            
-            {/* Controls column (Small left col on desktop, span 4) */}
-            <section className="lg:col-span-4 lg:sticky lg:top-24 self-start space-y-6 print:hidden">
-              
-              {/* Entry form (Only active cycle is editable) */}
-              {isViewingActive && (
-                <AddReadingForm 
-                  bill={bill} 
-                  readings={readings} 
-                  onAdd={handleAddReading} 
-                />
+          {/* Navigation Tabs */}
+          <div className="flex items-center gap-1.5 border-b border-neutral-200 dark:border-neutral-800 pb-3 mb-6 print:hidden">
+            <button
+              onClick={() => setActiveTab("dashboard")}
+              className={`flex items-center gap-2 px-3.5 py-2 text-[10px] font-bold uppercase tracking-widest transition-all rounded-lg cursor-pointer ${
+                activeTab === "dashboard"
+                  ? "bg-neutral-900 text-white dark:bg-white dark:text-black shadow-xs"
+                  : "text-neutral-500 hover:text-neutral-900 dark:hover:text-white hover:bg-neutral-100 dark:hover:bg-neutral-900/50"
+              }`}
+            >
+              <LayoutDashboard className="w-3.5 h-3.5" />
+              <span>Dashboard</span>
+            </button>
+            <button
+              onClick={() => setActiveTab("ledger")}
+              className={`flex items-center gap-2 px-3.5 py-2 text-[10px] font-bold uppercase tracking-widest transition-all rounded-lg cursor-pointer ${
+                activeTab === "ledger"
+                  ? "bg-neutral-900 text-white dark:bg-white dark:text-black shadow-xs"
+                  : "text-neutral-500 hover:text-neutral-900 dark:hover:text-white hover:bg-neutral-100 dark:hover:bg-neutral-900/50"
+              }`}
+            >
+              <History className="w-3.5 h-3.5" />
+              <span>Checkpoints Ledger</span>
+              {readings.length > 0 && (
+                <span className={`ml-1 text-[9px] px-1.5 py-0.5 rounded-sm font-mono font-bold ${
+                  activeTab === "ledger"
+                    ? "bg-neutral-850 text-neutral-300 dark:bg-neutral-100 dark:text-neutral-700"
+                    : "bg-neutral-100 text-neutral-600 dark:bg-neutral-850 dark:text-neutral-400"
+                }`}>
+                  {readings.length}
+                </span>
               )}
+            </button>
+          </div>
 
-              {/* Micro-insights (Quick Eco Tip remains here) */}
-              <div className="bg-white dark:bg-[#121316] border border-neutral-200 dark:border-neutral-800 p-5 rounded-xl space-y-4 shadow-xs">
-                <h4 className="font-display font-extrabold text-neutral-900 dark:text-white text-[10px] uppercase tracking-widest flex items-center gap-1.5 font-mono">
-                  <SunMedium className="w-4 h-4 text-neutral-500" />
-                  Quick Eco Tip
-                </h4>
-                <p className="text-xs text-neutral-500 dark:text-neutral-400 leading-relaxed font-sans">
-                  Gov free 10 units cover lighting, basic fans, and normal computer usage. Operating thermal loads like high-power kettles (1.5 kW), water heaters, or microwave ovens for just 1 hour uses up to 2-3 times your total eco-tier average!
-                </p>
-              </div>
-
-            </section>
-
-            {/* Visualization & logs column (Large right col, span 8) */}
-            <section className="lg:col-span-8 space-y-6">
+          {activeTab === "dashboard" ? (
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
               
-              {/* Top Stats Dashboard Summary */}
-              <InsightsDashboard 
-                bill={currentBill} 
-                readings={currentReadings} 
-              />
+              {/* Controls column (Small left col on desktop, span 4) */}
+              <section className="lg:col-span-4 lg:sticky lg:top-24 self-start space-y-6 print:hidden">
+                
+                {/* Entry form (Only active cycle is editable) */}
+                {isViewingActive ? (
+                  <AddReadingForm 
+                    bill={bill} 
+                    readings={readings} 
+                    onAdd={handleAddReading} 
+                  />
+                ) : (
+                  <div className="bg-white dark:bg-[#121316] border border-neutral-200 dark:border-neutral-800 p-5 rounded-xl space-y-2 shadow-xs">
+                    <h4 className="font-display font-extrabold text-neutral-900 dark:text-white text-[10px] uppercase tracking-widest font-mono">
+                      Historical Archive
+                    </h4>
+                    <p className="text-xs text-neutral-500 dark:text-neutral-400 leading-relaxed font-sans">
+                      You are viewing read-only historical metrics. Logging new reads or editing reference parameters is disabled for this cycle.
+                    </p>
+                  </div>
+                )}
 
-              {/* Custom SVG trajectory chart */}
-              <Suspense fallback={<div className="h-[240px] flex items-center justify-center text-xs text-neutral-400 font-mono">Loading chart...</div>}>
-                <SavingsChart 
+                {/* Micro-insights (Quick Eco Tip shown only on desktop) */}
+                <div className="hidden lg:block bg-white dark:bg-[#121316] border border-neutral-200 dark:border-neutral-800 p-5 rounded-xl space-y-4 shadow-xs">
+                  <h4 className="font-display font-extrabold text-neutral-900 dark:text-white text-[10px] uppercase tracking-widest flex items-center gap-1.5 font-mono">
+                    <SunMedium className="w-4 h-4 text-neutral-500" />
+                    Quick Eco Tip
+                  </h4>
+                  <p className="text-xs text-neutral-500 dark:text-neutral-400 leading-relaxed font-sans">
+                    Gov free 10 units cover lighting, basic fans, and normal computer usage. Operating thermal loads like high-power kettles (1.5 kW), water heaters, or microwave ovens for just 1 hour uses up to 2-3 times your total eco-tier average!
+                  </p>
+                </div>
+
+              </section>
+
+              {/* Visualization & logs column (Large right col, span 8) */}
+              <section className="lg:col-span-8 space-y-6">
+                
+                {/* Top Stats Dashboard Summary */}
+                <InsightsDashboard 
                   bill={currentBill} 
                   readings={currentReadings} 
-                  isDark={isDark}
                 />
-              </Suspense>
 
+                {/* Custom SVG trajectory chart */}
+                <Suspense fallback={<div className="h-[240px] flex items-center justify-center text-xs text-neutral-400 font-mono">Loading chart...</div>}>
+                  <SavingsChart 
+                    bill={currentBill} 
+                    readings={currentReadings} 
+                    isDark={isDark}
+                  />
+                </Suspense>
+
+              </section>
+            </div>
+          ) : (
+            <div className="w-full space-y-6">
               {/* Physical Entries Log List */}
               <ReadingsList 
                 bill={currentBill} 
                 readings={currentReadings} 
                 onDelete={isViewingActive ? handleDeleteReading : undefined} 
               />
-
-            </section>
-          </div>
+            </div>
+          )}
         </main>
 
         {/* Subtle humble footer matching strict branding rules */}

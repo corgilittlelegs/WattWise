@@ -1,4 +1,4 @@
-import { Zap, HelpCircle, Settings } from "lucide-react";
+import { Zap, HelpCircle, Settings, SunMedium } from "lucide-react";
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "motion/react";
 
@@ -112,7 +112,7 @@ export default function Header({
             exit={{ opacity: 0, height: 0 }}
             className="overflow-hidden bg-neutral-50 dark:bg-[#0c0c0e] border-b border-neutral-200 dark:border-neutral-800"
           >
-            <div className="max-w-6xl mx-auto px-4 sm:px-6 py-6 text-neutral-750 dark:text-neutral-300 text-xs leading-relaxed grid md:grid-cols-3 gap-6">
+            <div className="max-w-6xl mx-auto px-4 sm:px-6 py-6 text-neutral-750 dark:text-neutral-300 text-xs leading-relaxed grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
               <div className="bg-white dark:bg-[#121316] p-5 border border-neutral-200 dark:border-neutral-800 rounded-lg shadow-2xs">
                 <span className="font-bold text-neutral-900 dark:text-white uppercase tracking-wider flex items-center gap-2 mb-2">
                   <span className="w-6 h-6 rounded-md bg-neutral-900 dark:bg-white text-white dark:text-black flex items-center justify-center text-xs font-mono font-bold">01</span>
@@ -140,6 +140,18 @@ export default function Header({
                 </span>
                 <p className="text-neutral-500 dark:text-neutral-400 leading-relaxed font-sans">
                   The government provides <strong>10 kWh units free per day</strong>. If your cumulative usage is below 10 &times; (Days Elapsed), you have saved energy units!
+                </p>
+              </div>
+
+              <div className="bg-white dark:bg-[#121316] p-5 border border-neutral-200 dark:border-neutral-800 rounded-lg shadow-2xs lg:hidden">
+                <span className="font-bold text-neutral-900 dark:text-white uppercase tracking-wider flex items-center gap-2 mb-2">
+                  <span className="w-6 h-6 rounded-md bg-neutral-900 dark:bg-white text-white dark:text-black flex items-center justify-center text-xs font-mono font-bold">
+                    <SunMedium className="w-3.5 h-3.5" />
+                  </span>
+                  Quick Eco Tip
+                </span>
+                <p className="text-neutral-500 dark:text-neutral-400 leading-relaxed font-sans">
+                  Gov free 10 units cover lighting, basic fans, and normal computer usage. Operating thermal loads like high-power kettles (1.5 kW), water heaters, or microwave ovens for just 1 hour uses up to 2-3 times your total eco-tier average!
                 </p>
               </div>
             </div>
