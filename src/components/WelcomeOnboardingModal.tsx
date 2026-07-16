@@ -246,7 +246,7 @@ export const WelcomeOnboardingModal: React.FC<WelcomeOnboardingModalProps> = ({
                     type="text"
                     id="setup-link-key"
                     required
-                    placeholder="e.g. WATT-ABCD-EFGH"
+                    placeholder="e.g. WATT-ABCD-EFGH-2J9K"
                     className={`block w-full bg-neutral-50 dark:bg-[#18181b] border pl-9 pr-3 py-2.5 text-neutral-800 dark:text-white placeholder:text-neutral-400 focus:bg-white dark:focus:bg-[#18181b] focus:outline-hidden focus:ring-1 focus:ring-neutral-900 dark:focus:ring-neutral-250 focus:border-neutral-900 dark:focus:border-neutral-250 text-xs rounded-lg transition-colors uppercase ${
                       linkError
                         ? 'border-rose-500 focus:border-rose-505 focus:ring-rose-500'

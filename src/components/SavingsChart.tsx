@@ -167,10 +167,11 @@ export default function SavingsChart({ bill, readings, isDark = false }: Savings
         <div className="relative">
           {/* SVG Canvas wrapper */}
           <div className="overflow-x-auto select-none">
-            <svg 
-              viewBox={`0 0 ${width} ${height}`} 
+            <svg
+              viewBox={`0 0 ${width} ${height}`}
               className="w-full min-w-[500px]"
               style={{ overflow: "visible" }}
+              onClick={() => setHoveredPoint(null)}
             >
               {/* Horizontal grid lines */}
               {horizontalGridLines.map(val => (
@@ -278,6 +279,26 @@ export default function SavingsChart({ bill, readings, isDark = false }: Savings
                       }
                     }}
                     onMouseLeave={() => setHoveredPoint(null)}
+                    onClick={(e) => {
+                      // Touch devices have no hover: tap toggles the tooltip instead.
+                      e.stopPropagation();
+                      if (pt.isBaseline) return;
+                      const matchedReading = readings.find(r => r.date === pt.date);
+                      if (!matchedReading) return;
+                      setHoveredPoint(prev =>
+                        prev?.reading.id === matchedReading.id
+                          ? null
+                          : {
+                              x,
+                              y,
+                              reading: matchedReading,
+                              days: pt.days,
+                              consumed: pt.consumed,
+                              allowance: pt.allowance,
+                              saved: pt.allowance - pt.consumed
+                            }
+                      );
+                    }}
                   />
                 );
               })}

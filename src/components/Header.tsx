@@ -1,5 +1,5 @@
 import { Zap, HelpCircle, Settings } from "lucide-react";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "motion/react";
 
 interface HeaderProps {
@@ -14,6 +14,20 @@ export default function Header({
   isSyncActive
 }: HeaderProps) {
   const [showHelp, setShowHelp] = useState(false);
+
+  // "H" toggles the instruction panel, matching the hint badge next to the button.
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      const target = e.target as HTMLElement | null;
+      const isTyping = target && (target.tagName === "INPUT" || target.tagName === "TEXTAREA" || target.isContentEditable);
+      if (isTyping || e.metaKey || e.ctrlKey || e.altKey) return;
+      if (e.key.toLowerCase() === "h") {
+        setShowHelp((prev) => !prev);
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, []);
 
   return (
     <header className="border-b border-neutral-200 dark:border-neutral-800 bg-white dark:bg-[#0b0c0e] sticky top-0 z-40 transition-colors duration-150 print:hidden">
@@ -30,7 +44,7 @@ export default function Header({
                 WattWise Platform
               </span>
               <span className="text-[9px] px-1.5 py-0.5 bg-neutral-100 dark:bg-neutral-800 text-neutral-600 dark:text-neutral-400 font-mono font-bold tracking-tight rounded-sm">
-                v1.3.0
+                v{__APP_VERSION__}
               </span>
             </div>
             

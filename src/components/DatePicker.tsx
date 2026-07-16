@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useMemo } from "react";
 import { Calendar as CalendarIcon, ChevronLeft, ChevronRight } from "lucide-react";
 
 interface DatePickerProps {
@@ -212,6 +212,3 @@ export default function DatePicker({
     </div>
   );
 }
-
-// Simple memo wrapper helper
-import { useMemo } from "react";

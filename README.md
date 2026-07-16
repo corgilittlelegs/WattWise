@@ -1,20 +1,28 @@
-<div align="center">
-<img width="1200" height="475" alt="GHBanner" src="https://ai.google.dev/static/site-assets/images/share-ais-513315318.png" />
-</div>
+# WattWise — Electricity Consumption Tracker
 
-# Run and deploy your AI Studio app
+Track electricity meter readings against a daily free allowance (10 kWh/day), visualize savings trends, and optionally sync across devices with a secret Sync Key. All calculations run client-side; data is stored in `localStorage` and, if cloud sync is enabled, in Firestore.
 
-This contains everything you need to run your app locally.
+## Run locally
 
-View your app in AI Studio: https://ai.studio/apps/578edadb-c55f-437c-885a-f7b06a5b44d5
+**Prerequisites:** Node.js 20+
 
-## Run Locally
+```
+npm install
+npm run dev
+```
 
-**Prerequisites:**  Node.js
+## Scripts
 
+- `npm run dev` — start the dev server
+- `npm run build` — production build to `dist/`
+- `npm run preview` — preview the production build
+- `npm test` — run the unit tests
+- `npm run lint` — typecheck with `tsc --noEmit`
 
-1. Install dependencies:
-   `npm install`
-2. Set the `GEMINI_API_KEY` in [.env.local](.env.local) to your Gemini API key
-3. Run the app:
-   `npm run dev`
+## Cloud sync
+
+Cloud sync uses Firebase Anonymous Auth + Firestore. The web config in `firebase-applet-config.json` is not secret (standard for Firebase web apps), but the deployed project should have App Check and referrer restrictions enabled. Firestore security rules live in `firestore.rules`; deploy them with:
+
+```
+firebase deploy --only firestore:rules
+```

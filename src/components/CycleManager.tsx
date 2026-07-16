@@ -11,6 +11,7 @@ import {
   HelpCircle
 } from "lucide-react";
 import { BillDetails, MeterReading, ArchivedCycle } from "../types";
+import { latestReading } from "../lib/sync";
 import DatePicker from "./DatePicker";
 
 interface CycleManagerProps {
@@ -46,12 +47,10 @@ export default function CycleManager({
   const [newStartReading, setNewStartReading] = useState("");
   const [formError, setFormError] = useState<string | null>(null);
 
-  // Derive default values for pre-population
-  const latestReading = readings.length > 0 
-    ? [...readings].sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())[0]
-    : null;
-  const latestReadingDateStr = latestReading?.date || new Date().toISOString().split("T")[0];
-  const latestReadingVal = latestReading?.reading ?? bill.lastBillReading;
+  // Derive default values for pre-population (most recent logged reading, not oldest)
+  const mostRecentReading = latestReading(readings);
+  const latestReadingDateStr = mostRecentReading?.date || new Date().toISOString().split("T")[0];
+  const latestReadingVal = mostRecentReading?.reading ?? bill.lastBillReading;
 
   // Open form helper with defaults
   const handleOpenArchiveForm = () => {

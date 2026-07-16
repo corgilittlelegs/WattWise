@@ -1,4 +1,5 @@
 import { BillDetails, MeterReading, calculateStats } from "../types";
+import { todayLocalISO } from "../lib/dates";
 import { Zap, ShieldCheck, AlertTriangle } from "lucide-react";
 
 interface InsightsDashboardProps {
@@ -19,7 +20,7 @@ export default function InsightsDashboard({ bill, readings }: InsightsDashboardP
     ? sortedReadings[sortedReadings.length - 1] 
     : null;
 
-  const targetDateStr = latestReading ? latestReading.date : "2026-05-28";
+  const targetDateStr = latestReading ? latestReading.date : todayLocalISO();
   const targetReadingValue = latestReading ? latestReading.reading : bill.lastBillReading;
 
   const stats = calculateStats(bill, targetReadingValue, targetDateStr);

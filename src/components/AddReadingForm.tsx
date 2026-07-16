@@ -1,6 +1,7 @@
 import { useState, FormEvent } from "react";
 import { Plus, Compass, MessageSquare } from "lucide-react";
 import { BillDetails, MeterReading } from "../types";
+import { todayLocalISO } from "../lib/dates";
 import DatePicker from "./DatePicker";
 
 interface AddReadingFormProps {
@@ -10,14 +11,7 @@ interface AddReadingFormProps {
 }
 
 export default function AddReadingForm({ bill, readings, onAdd }: AddReadingFormProps) {
-  // Default date representing "today" (based on current local system date)
-  const defaultDate = (() => {
-    const d = new Date();
-    const offset = d.getTimezoneOffset();
-    const localDate = new Date(d.getTime() - (offset * 60 * 1000));
-    return localDate.toISOString().split("T")[0];
-  })();
-  const [date, setDate] = useState(defaultDate);
+  const [date, setDate] = useState(todayLocalISO);
   const [readingStr, setReadingStr] = useState("");
   const [notes, setNotes] = useState("");
   const [error, setError] = useState<string | null>(null);
@@ -44,6 +38,26 @@ export default function AddReadingForm({ bill, readings, onAdd }: AddReadingForm
 
     if (inputDateTime < billDateTime) {
       setError("Reading date cannot be prior to the previous bill issue date.");
+      return;
+    }
+
+    // A meter can only go up. Compare against the highest reading logged on
+    // or before this date so entries can't silently make usage go backwards.
+    const priorOrSameDayReadings = readings.filter(
+      (r) => new Date(r.date).getTime() <= inputDateTime
+    );
+    if (priorOrSameDayReadings.length > 0) {
+      const maxPrior = Math.max(...priorOrSameDayReadings.map((r) => r.reading));
+      if (readingVal < maxPrior) {
+        setError(
+          `Reading cannot be lower than a previously logged reading (${maxPrior.toLocaleString()} kWh) on or before this date.`
+        );
+        return;
+      }
+    }
+
+    if (readings.some((r) => r.date === date)) {
+      setError("A reading is already logged for this date. Edit or delete it first, or pick a different date.");
       return;
     }
 

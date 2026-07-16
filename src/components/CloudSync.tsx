@@ -1,18 +1,20 @@
 import { useState } from "react";
-import { 
-  Cloud, 
-  CloudOff, 
-  Copy, 
-  Check, 
-  Key, 
-  RefreshCw, 
-  AlertCircle, 
-  HelpCircle, 
+import {
+  Cloud,
+  CloudOff,
+  Copy,
+  Check,
+  Key,
+  RefreshCw,
+  AlertCircle,
+  HelpCircle,
   CheckCircle2,
-  Database
+  Database,
+  Trash2
 } from "lucide-react";
 import { BillDetails, MeterReading, ArchivedCycle } from "../types";
-import { checkSyncSession, saveSyncSession, SyncSessionData } from "../lib/firebase";
+import { checkSyncSession, saveSyncSession, saveArchivedCycle, deleteSyncSession, generateSyncCode, isValidSyncKeyFormat, SyncSessionData } from "../lib/firebase";
+import { mergeReadings, mergeArchivedCycles, normalizeSyncKey } from "../lib/sync";
 
 interface CloudSyncProps {
   bill: BillDetails;
@@ -53,29 +55,21 @@ export default function CloudSync({
     }
   };
 
-  // Generate a friendly, secure human-readable key: WATT-XXXX-XXXX
-  const generateSyncKey = () => {
-    const chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"; // No confusing 1, l, 0, O
-    const genPart = (len: number) => {
-      let result = "";
-      for (let i = 0; i < len; i++) {
-        result += chars.charAt(Math.floor(Math.random() * chars.length));
-      }
-      return result;
-    };
-    return `WATT-${genPart(4)}-${genPart(4)}`;
-  };
+  const [isDeleting, setIsDeleting] = useState(false);
 
-  // Connect & Sync action
+  // Connect & Sync action. Only accepts the full generated key format
+  // (WATT-XXXX-XXXX-XXXX) — short hand-typed keys are trivially guessable
+  // and, since Firestore is readable by anyone with the key, that's a real
+  // exposure, not just a UX nicety.
   const handleConnect = async (keyToUse?: string) => {
     setError(null);
-    const key = (keyToUse || syncKeyInput).trim().toUpperCase();
+    const key = normalizeSyncKey(keyToUse || syncKeyInput);
     if (!key) {
       setError("Please enter a valid Sync Key.");
       return;
     }
-    if (key.length < 6) {
-      setError("Sync Key must be at least 6 characters long.");
+    if (!isValidSyncKeyFormat(key)) {
+      setError("Sync Key must be in the format WATT-XXXX-XXXX-XXXX.");
       return;
     }
 
@@ -90,10 +84,10 @@ export default function CloudSync({
         const localBillJson = JSON.stringify(bill);
         const cloudBillJson = JSON.stringify(existingData.bill);
         const localArchivedJson = JSON.stringify(archivedCycles);
-        const cloudArchivedJson = JSON.stringify(existingData.archivedCycles || []);
+        const cloudArchivedJson = JSON.stringify(existingData.archivedCycles);
 
-        if (localReadingsJson === cloudReadingsJson && 
-            localBillJson === cloudBillJson && 
+        if (localReadingsJson === cloudReadingsJson &&
+            localBillJson === cloudBillJson &&
             localArchivedJson === cloudArchivedJson) {
           // No actual difference, proceed with immediate link
           onSyncStateLoaded(bill, readings, archivedCycles, key);
@@ -105,7 +99,8 @@ export default function CloudSync({
         }
       } else {
         // Document does not exist in Cloud yet. Initialize it with our local state.
-        await saveSyncSession(key, bill, readings, archivedCycles);
+        await saveSyncSession(key, bill, readings);
+        await Promise.all(archivedCycles.map(c => saveArchivedCycle(key, c)));
         onSyncStateLoaded(bill, readings, archivedCycles, key);
         setSyncKeyInput("");
       }
@@ -118,7 +113,7 @@ export default function CloudSync({
   };
 
   const handleCreateNewSync = async () => {
-    const key = generateSyncKey();
+    const key = generateSyncCode();
     await handleConnect(key);
   };
 
@@ -131,50 +126,29 @@ export default function CloudSync({
       if (choice === "use-cloud") {
         // Overwrite local with cloud
         onSyncStateLoaded(
-          pendingSessionData.bill, 
-          pendingSessionData.readings, 
-          pendingSessionData.archivedCycles || [], 
+          pendingSessionData.bill,
+          pendingSessionData.readings,
+          pendingSessionData.archivedCycles,
           pendingSyncKey
         );
       } else if (choice === "use-local") {
         // Overwrite cloud with local
-        await saveSyncSession(pendingSyncKey, bill, readings, archivedCycles);
+        await saveSyncSession(pendingSyncKey, bill, readings);
+        await Promise.all(archivedCycles.map(c => saveArchivedCycle(pendingSyncKey, c)));
         onSyncStateLoaded(bill, readings, archivedCycles, pendingSyncKey);
       } else if (choice === "merge") {
-        // Merge datasets
-        const readingsMap = new Map<string, MeterReading>();
-        
-        // Add cloud readings first
-        pendingSessionData.readings.forEach(r => {
-          readingsMap.set(r.date, r);
-        });
-        // Add local readings (local overrides cloud on same date if there is one)
-        readings.forEach(r => {
-          readingsMap.set(r.date, r);
-        });
+        // Merge by id (not date) so same-day readings on different devices survive
+        const mergedReadings = mergeReadings(pendingSessionData.readings, readings);
+        const mergedCycles = mergeArchivedCycles(pendingSessionData.archivedCycles, archivedCycles);
 
-        // Convert back to sorted list
-        const mergedReadings = Array.from(readingsMap.values()).sort(
-          (a, b) => new Date(a.date).getTime() - new Date(b.date).getTime()
-        );
-
-        // 2. Bill Anchor: Take the one with the latest anchor date
+        // Bill anchor: take the one with the latest anchor date
         const cloudBillDate = new Date(pendingSessionData.bill.lastBillDate).getTime();
         const localBillDate = new Date(bill.lastBillDate).getTime();
         const mergedBill = cloudBillDate >= localBillDate ? pendingSessionData.bill : bill;
 
-        // 3. Archived cycles merge: Combine and deduplicate by cycle ID
-        const cyclesMap = new Map<string, ArchivedCycle>();
-        (pendingSessionData.archivedCycles || []).forEach(c => {
-          cyclesMap.set(c.id, c);
-        });
-        archivedCycles.forEach(c => {
-          cyclesMap.set(c.id, c);
-        });
-        const mergedCycles = Array.from(cyclesMap.values()).sort((a, b) => b.archivedAt - a.archivedAt);
-
         // Save merged output back to cloud
-        await saveSyncSession(pendingSyncKey, mergedBill, mergedReadings, mergedCycles);
+        await saveSyncSession(pendingSyncKey, mergedBill, mergedReadings);
+        await Promise.all(mergedCycles.map(c => saveArchivedCycle(pendingSyncKey, c)));
         onSyncStateLoaded(mergedBill, mergedReadings, mergedCycles, pendingSyncKey);
       }
 
@@ -187,6 +161,25 @@ export default function CloudSync({
       setError("Failed to resolve conflict.");
     } finally {
       setIsConnecting(false);
+    }
+  };
+
+  const handleDeleteCloudData = async () => {
+    if (!activeSyncKey) return;
+    if (!window.confirm(
+      "Permanently delete this Sync Key's cloud data? This removes it for every device connected with this key. Your local data on this device is unaffected."
+    )) {
+      return;
+    }
+    setIsDeleting(true);
+    try {
+      await deleteSyncSession(activeSyncKey);
+      onDisconnect();
+    } catch (err) {
+      console.error("Failed to delete cloud sync session:", err);
+      setError("Failed to delete cloud data. Please try again.");
+    } finally {
+      setIsDeleting(false);
     }
   };
 
@@ -253,6 +246,23 @@ export default function CloudSync({
           >
             Disconnect Cloud Sync (Go Offline)
           </button>
+
+          <button
+            id="delete-cloud-data-btn"
+            onClick={handleDeleteCloudData}
+            disabled={isDeleting}
+            className="w-full flex items-center justify-center gap-1.5 text-center py-2 text-[9px] font-bold uppercase tracking-widest text-rose-500 dark:text-rose-455 hover:text-rose-600 transition-colors border border-rose-200/60 dark:border-rose-900/40 hover:bg-rose-50/50 dark:hover:bg-rose-950/20 bg-transparent rounded-lg cursor-pointer font-mono disabled:opacity-50"
+          >
+            {isDeleting ? <RefreshCw className="w-3.5 h-3.5 animate-spin" /> : <Trash2 className="w-3.5 h-3.5" />}
+            <span>Permanently Delete Cloud Data</span>
+          </button>
+
+          {error && (
+            <div className="p-3 bg-rose-50/50 dark:bg-rose-955/20 border border-rose-100 dark:border-rose-900/50 text-xs text-rose-600 dark:text-rose-405 flex items-start gap-2 rounded-lg">
+              <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
+              <span>{error}</span>
+            </div>
+          )}
         </div>
       ) : (
         /* Offline Config View */
@@ -269,7 +279,7 @@ export default function CloudSync({
                   type="text"
                   value={syncKeyInput}
                   onChange={(e) => setSyncKeyInput(e.target.value)}
-                  placeholder="e.g. WATT-ABCD-EFGH"
+                  placeholder="e.g. WATT-ABCD-EFGH-2J9K"
                   className="w-full text-xs font-bold pl-9 pr-3 py-2.5 border border-neutral-205 dark:border-neutral-800 focus:outline-hidden focus:ring-1 focus:ring-neutral-900 dark:focus:ring-neutral-250 focus:border-neutral-900 dark:focus:border-neutral-250 text-neutral-850 dark:text-neutral-100 bg-neutral-50 dark:bg-[#18181b] rounded-lg transition-colors uppercase"
                 />
               </div>

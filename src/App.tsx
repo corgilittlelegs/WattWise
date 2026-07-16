@@ -17,7 +17,13 @@ import SettingsDrawer from "./components/SettingsDrawer";
 import InsightsDashboard from "./components/InsightsDashboard";
 import ReadingsList from "./components/ReadingsList";
 import { SunMedium } from "lucide-react";
-import { subscribeToSyncSession, saveSyncSession, checkSyncSessionExists } from "./lib/firebase";
+import {
+  subscribeToSyncSession,
+  saveSyncSession,
+  checkSyncSessionExists,
+  saveArchivedCycle,
+  deleteArchivedCycleRemote,
+} from "./lib/firebase";
 import { ErrorBoundary } from "./components/ErrorBoundary";
 
 // Lazy-loaded components for code splitting & bundle optimization
@@ -147,11 +153,25 @@ export default function App() {
     }
   });
 
-  // Ref to track last synchronized state to prevent loop-backs
-  const lastSyncRef = useRef<{ bill: string; readings: string; archivedCycles: string } | null>(null);
+  // Ref to track last synchronized state to prevent loop-backs. Keyed off a
+  // ref (not the bill/readings closure values) so a slow-arriving snapshot
+  // always compares against the CURRENT state, not the state that existed
+  // when the subscription was created.
+  const lastSyncRef = useRef<{ bill: string; readings: string } | null>(null);
+  const stateRef = useRef({ bill, readings });
+  useEffect(() => {
+    stateRef.current = { bill, readings };
+  }, [bill, readings]);
+
+  // True once the first snapshot for the current activeSyncKey has arrived.
+  // Blocks the uploader below from pushing (possibly stale/demo) local state
+  // over real cloud data before we've actually seen what's there.
+  const hydratedRef = useRef(false);
 
   // Sync key listener & Firestore subscriber
   useEffect(() => {
+    hydratedRef.current = false;
+
     if (!activeSyncKey) {
       try {
         localStorage.removeItem("wattwise_sync_key");
@@ -164,22 +184,22 @@ export default function App() {
     } catch {}
 
     const unsubscribe = subscribeToSyncSession(activeSyncKey, (data) => {
+      hydratedRef.current = true;
       if (!data) return;
+
       const billStr = JSON.stringify(data.bill);
       const readingsStr = JSON.stringify(data.readings);
-      const archivedStr = JSON.stringify(data.archivedCycles || []);
 
-      // Check if incoming cloud data is different from what we already have
-      const currentBillStr = JSON.stringify(bill);
-      const currentReadingsStr = JSON.stringify(readings);
-      const currentArchivedStr = JSON.stringify(archivedCycles);
+      // Compare against CURRENT state (via ref), not a stale closure.
+      const currentBillStr = JSON.stringify(stateRef.current.bill);
+      const currentReadingsStr = JSON.stringify(stateRef.current.readings);
 
-      if (billStr !== currentBillStr || readingsStr !== currentReadingsStr || archivedStr !== currentArchivedStr) {
-        lastSyncRef.current = { bill: billStr, readings: readingsStr, archivedCycles: archivedStr };
+      if (billStr !== currentBillStr || readingsStr !== currentReadingsStr) {
+        lastSyncRef.current = { bill: billStr, readings: readingsStr };
         setBill(data.bill);
         setReadings(data.readings);
-        setArchivedCycles(data.archivedCycles || []);
       }
+      setArchivedCycles(data.archivedCycles);
     });
 
     return () => {
@@ -187,28 +207,27 @@ export default function App() {
     };
   }, [activeSyncKey]);
 
-  // Local changes uploader effect
+  // Local changes uploader effect (bill + readings only — archived cycles
+  // are written individually via handleArchiveCycle/handleDeleteArchive so
+  // a growing history never inflates this hot document on every edit).
   useEffect(() => {
-    if (!activeSyncKey) return;
+    if (!activeSyncKey || !hydratedRef.current) return;
 
     const currentBillStr = JSON.stringify(bill);
     const currentReadingsStr = JSON.stringify(readings);
-    const currentArchivedStr = JSON.stringify(archivedCycles);
 
     // If state is identical to our last sync snapshot, skip uploading
-    if (lastSyncRef.current && 
-        lastSyncRef.current.bill === currentBillStr && 
-        lastSyncRef.current.readings === currentReadingsStr &&
-        lastSyncRef.current.archivedCycles === currentArchivedStr) {
+    if (lastSyncRef.current &&
+        lastSyncRef.current.bill === currentBillStr &&
+        lastSyncRef.current.readings === currentReadingsStr) {
       return;
     }
 
-    // This is a local change, upload it (debounced)
-    lastSyncRef.current = { bill: currentBillStr, readings: currentReadingsStr, archivedCycles: currentArchivedStr };
+    lastSyncRef.current = { bill: currentBillStr, readings: currentReadingsStr };
 
     const uploadData = async () => {
       try {
-        await saveSyncSession(activeSyncKey, bill, readings, archivedCycles);
+        await saveSyncSession(activeSyncKey, bill, readings);
       } catch (err) {
         console.error("Failed to upload local change to cloud sync:", err);
       }
@@ -216,7 +235,38 @@ export default function App() {
 
     const timeoutId = setTimeout(uploadData, 800);
     return () => clearTimeout(timeoutId);
-  }, [bill, readings, archivedCycles, activeSyncKey]);
+  }, [bill, readings, activeSyncKey]);
+
+  // Flush a pending debounced upload immediately if the tab is being closed
+  // or backgrounded, so a last-second edit isn't silently lost.
+  useEffect(() => {
+    const flush = () => {
+      if (!activeSyncKey || !hydratedRef.current) return;
+      const { bill: currentBill, readings: currentReadings } = stateRef.current;
+      const currentBillStr = JSON.stringify(currentBill);
+      const currentReadingsStr = JSON.stringify(currentReadings);
+      if (lastSyncRef.current &&
+          lastSyncRef.current.bill === currentBillStr &&
+          lastSyncRef.current.readings === currentReadingsStr) {
+        return;
+      }
+      lastSyncRef.current = { bill: currentBillStr, readings: currentReadingsStr };
+      saveSyncSession(activeSyncKey, currentBill, currentReadings).catch((err) => {
+        console.error("Failed to flush cloud sync on page hide:", err);
+      });
+    };
+
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === "hidden") flush();
+    };
+
+    window.addEventListener("pagehide", flush);
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+    return () => {
+      window.removeEventListener("pagehide", flush);
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+    };
+  }, [activeSyncKey]);
 
   // Persist state updates to localstorage
   useEffect(() => {
@@ -251,7 +301,7 @@ export default function App() {
   const handleAddReading = (newReading: Omit<MeterReading, "id">) => {
     const readingItem: MeterReading = {
       ...newReading,
-      id: `reading-${Date.now()}`
+      id: crypto.randomUUID()
     };
     setReadings(prev => [...prev, readingItem]);
   };
@@ -266,7 +316,7 @@ export default function App() {
 
   const handleArchiveCycle = (name: string, newStartDate: string, newStartReading: number) => {
     const newArchivedCycle: ArchivedCycle = {
-      id: `cycle-${Date.now()}`,
+      id: crypto.randomUUID(),
       name,
       bill,
       readings,
@@ -279,12 +329,24 @@ export default function App() {
     });
     setReadings([]);
     setSelectedCycleId("active");
+
+    if (activeSyncKey) {
+      saveArchivedCycle(activeSyncKey, newArchivedCycle).catch((err) => {
+        console.error("Failed to sync archived cycle to cloud:", err);
+      });
+    }
   };
 
   const handleDeleteArchive = (id: string) => {
     if (window.confirm("Are you sure you want to delete this archived cycle? All of its meter readings and historical data will be lost forever.")) {
       setArchivedCycles(prev => prev.filter(c => c.id !== id));
       setSelectedCycleId("active");
+
+      if (activeSyncKey) {
+        deleteArchivedCycleRemote(activeSyncKey, id).catch((err) => {
+          console.error("Failed to delete archived cycle from cloud:", err);
+        });
+      }
     }
   };
 
